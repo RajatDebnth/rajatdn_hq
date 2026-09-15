@@ -1,0 +1,51 @@
+import type { ProjectMetadata } from "@/types/content";
+
+// These records establish the content contract only. Replace them with verified
+// project material before changing `placeholder` or publishing results.
+export const projectEntries = [
+  {
+    kind: "project",
+    title: "Predictive Maintenance System",
+    slug: "predictive-maintenance-system",
+    shortDescription: "A planned case-study placeholder for a production-oriented predictive maintenance system.",
+    description: "This entry reserves a future case study about predictive maintenance system design. No implementation, deployment, dataset, or result is claimed.",
+    status: "planned",
+    industry: "Advanced manufacturing — area of focus",
+    topics: ["Predictive maintenance", "Industrial AI", "MLOps"],
+    featured: true,
+    placeholder: true,
+    relatedArticles: [{ slug: "production-ai-systems-from-prototype-to-factory-deployment", title: "Production AI Systems: From Prototype to Factory Deployment" }],
+    seoTitle: "Predictive Maintenance System — Planned Project",
+    seoDescription: "A clearly labeled placeholder for a future predictive maintenance engineering case study by Rajat Nath.",
+  },
+  {
+    kind: "project",
+    title: "Industrial Anomaly Detection System",
+    slug: "industrial-anomaly-detection-system",
+    shortDescription: "A planned case-study placeholder for anomaly detection across industrial operating data.",
+    description: "This entry reserves a future case study about industrial anomaly detection. No implementation, deployment, dataset, or result is claimed.",
+    status: "planned",
+    industry: "Advanced manufacturing — area of focus",
+    topics: ["Anomaly detection", "Industrial data", "Observability"],
+    featured: true,
+    placeholder: true,
+    relatedArticles: [{ slug: "production-ai-systems-from-prototype-to-factory-deployment", title: "Production AI Systems: From Prototype to Factory Deployment" }],
+    seoTitle: "Industrial Anomaly Detection System — Planned Project",
+    seoDescription: "A clearly labeled placeholder for a future industrial anomaly detection engineering case study by Rajat Nath.",
+  },
+  {
+    kind: "project",
+    title: "Production Optimization System",
+    slug: "production-optimization-system",
+    shortDescription: "A planned case-study placeholder for a constraint-aware production optimization system.",
+    description: "This entry reserves a future case study about production optimization system design. No implementation, deployment, dataset, or result is claimed.",
+    status: "planned",
+    industry: "Advanced manufacturing — area of focus",
+    topics: ["Optimization", "Production systems", "Operational intelligence"],
+    featured: true,
+    placeholder: true,
+    relatedArticles: [{ slug: "production-ai-systems-from-prototype-to-factory-deployment", title: "Production AI Systems: From Prototype to Factory Deployment" }],
+    seoTitle: "Production Optimization System — Planned Project",
+    seoDescription: "A clearly labeled placeholder for a future production optimization engineering case study by Rajat Nath.",
+  },
+] as const satisfies readonly ProjectMetadata[];

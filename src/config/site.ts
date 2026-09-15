@@ -1,0 +1,42 @@
+export const siteConfig = {
+  name: "Rajat Nath",
+  givenName: "Rajat",
+  familyName: "Nath",
+  professionalTitle: "AI Systems & Infrastructure Engineer",
+  specialization: "Production AI systems for advanced manufacturing",
+  defaultTitle: "Rajat Nath — AI Systems & Infrastructure Engineer",
+  description:
+    "Rajat Nath is an AI Systems & Infrastructure Engineer focused on production AI systems for advanced manufacturing.",
+  url: "https://rajatdn.vercel.app",
+  locale: "en",
+  openGraphLocale: "en_IN",
+  themeColors: {
+    light: "#f5f6f3",
+    dark: "#101311",
+  },
+  socialImage: {
+    path: "/opengraph-image",
+    width: 1200,
+    height: 630,
+    alt: "Rajat Nath — AI Systems & Infrastructure Engineer",
+  },
+  contact: {
+    formEndpoint: process.env.CONTACT_FORM_ENDPOINT || null,
+    email: process.env.CONTACT_EMAIL || null,
+    linkedInUrl: process.env.CONTACT_LINKEDIN_URL || null,
+    gitHubUrl: process.env.CONTACT_GITHUB_URL || null,
+  },
+  topics: [
+    "Industrial AI",
+    "AI infrastructure",
+    "MLOps",
+    "Edge AI",
+    "Computer vision",
+    "Predictive maintenance",
+    "Anomaly detection",
+    "Optimization",
+    "Automation",
+    "Operational intelligence",
+    "Industrial data systems",
+  ],
+} as const;

@@ -1,195 +1,96 @@
 import type { Metadata } from "next";
+import Image from "next/image";
+import Link from "next/link";
 
-import { ArchitectureFlow } from "@/components/home/architecture-flow";
 import { ArticleCard } from "@/components/cards/article-card";
 import { ProjectCard } from "@/components/cards/project-card";
-import { OutcomeCard } from "@/components/home/outcome-card";
-import { SectionHeading } from "@/components/home/section-heading";
-import { CtaSection } from "@/components/sections/cta-section";
 import { JsonLd } from "@/components/seo/json-ld";
 import { ButtonLink } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
 import { Section } from "@/components/ui/section";
 import { TagList } from "@/components/ui/tag-list";
 import { siteConfig } from "@/config/site";
+import { resumeContent } from "@/content/resume/resume";
 import { getPublishedArticles } from "@/lib/content/blog";
 import { getAllProjects } from "@/lib/content/projects";
 import { createPageMetadata } from "@/lib/metadata/create-page-metadata";
 import { createWebPageStructuredData } from "@/lib/seo/structured-data";
 
-const outcomes = [
-  {
-    title: "Prediction",
-    description: "Systems that use industrial data to estimate future states, demand, quality, or equipment behavior.",
-  },
-  {
-    title: "Optimization",
-    description: "Decision systems that evaluate constraints and identify better operating choices.",
-  },
-  {
-    title: "Anomaly Detection",
-    description: "Monitoring systems that surface unusual patterns for investigation and response.",
-  },
-  {
-    title: "Automation",
-    description: "Reliable workflows that connect data, models, decisions, and operational actions.",
-  },
-  {
-    title: "Operational Intelligence",
-    description: "Systems that turn telemetry and context into information teams can use.",
-  },
-] as const;
+const skills = ["Machine Learning", "Python", "System Architecture", "RAG Pipelines", "Data Infrastructure", "Automation", "Industrial AI"] as const;
+const homepageDescription = "Rajat Debnath is an AI Systems Engineer building data pipelines, automation, and infrastructure that turn operational data into clear action.";
 
-const engineeringFocus = [
-  "Production AI",
-  "Industrial AI",
-  "AI Infrastructure",
-  "MLOps",
-  "Edge AI",
-  "Computer Vision",
-  "Industrial Data",
-] as const;
-
-const principles = [
-  "Production over prototype",
-  "Measurable outcomes over model metrics alone",
-  "Reliability over unnecessary complexity",
-  "Architecture before implementation",
-  "Observability from day one",
-] as const;
-
-const homepageDescription =
-  "Rajat Nath is an AI Systems & Infrastructure Engineer building production AI systems for advanced manufacturing.";
-
-export const metadata: Metadata = createPageMetadata({
-  title: "Production AI Systems for Advanced Manufacturing",
-  description: homepageDescription,
-  path: "/",
-});
+export const metadata: Metadata = createPageMetadata({ title: "AI Systems Engineer", description: homepageDescription, path: "/" });
 
 export default function Home() {
-  const featuredArticles = getPublishedArticles().filter(({ metadata: article }) => article.featured);
-  const featuredProjects = getAllProjects().filter((project) => project.featured && !project.placeholder);
-  return (
-    <>
-      <JsonLd
-        data={createWebPageStructuredData({
-          name: "Production AI Systems for Advanced Manufacturing",
-          description: homepageDescription,
-          path: "/",
-        })}
-      />
+  const articles = getPublishedArticles().slice(0, 2);
+  const projects = getAllProjects().slice(0, 3);
 
-      <Section aria-labelledby="hero-title" spacing="wide">
-        <Container>
-          <div className="max-w-5xl border-l-2 border-[var(--accent)] pl-6 sm:pl-10">
-            <p className="mb-5 font-mono text-sm font-semibold uppercase tracking-[0.16em] text-[var(--accent)]">
-              {siteConfig.professionalTitle}
-            </p>
-            <h1 id="hero-title" className="max-w-4xl text-4xl font-semibold leading-[1.08] tracking-[-0.04em] sm:text-6xl lg:text-7xl">
-              Production AI Systems for Advanced Manufacturing
-            </h1>
-            <p className="mt-7 max-w-3xl text-lg leading-8 text-[var(--muted)] sm:text-xl">
-              Rajat Nath is an AI Systems &amp; Infrastructure Engineer building production AI systems that turn industrial data into reliable predictions, decisions, automation, and operational intelligence.
-            </p>
-            <div className="mt-9 flex flex-col gap-3 sm:flex-row">
-              <ButtonLink href="/systems">Explore Systems</ButtonLink>
-              <ButtonLink href="/projects" variant="secondary">View Projects</ButtonLink>
-            </div>
+  return <>
+    <JsonLd data={createWebPageStructuredData({ name: "Rajat Debnath — AI Systems Engineer", description: homepageDescription, path: "/" })} />
+
+    <Section aria-labelledby="hero-title" className="overflow-hidden bg-[var(--dark)] text-white" spacing="wide">
+      <Container className="grid items-center gap-12 lg:grid-cols-[minmax(0,1.25fr)_minmax(18rem,0.75fr)] lg:gap-16">
+        <div>
+          <p className="font-mono text-sm font-semibold uppercase tracking-[0.18em] text-[var(--contrast)]">AI Systems Engineer · Agartala, India</p>
+          <h1 className="mt-5 max-w-4xl text-5xl font-semibold leading-[0.98] tracking-[-0.05em] sm:text-7xl lg:text-8xl" id="hero-title">Rajat Debnath</h1>
+          <p className="mt-6 text-2xl font-medium tracking-tight sm:text-3xl">Messy operational data to clear action.</p>
+          <p className="mt-6 max-w-2xl text-lg leading-8 text-[var(--header-muted)]">I build AI systems, data pipelines, and automation that connect raw operational data to useful products and decisions.</p>
+          <div className="mt-9 flex flex-wrap gap-3">
+            <ButtonLink href="/experiences">See the work behind the systems</ButtonLink>
+            <ButtonLink className="border-white/35 text-white hover:border-white hover:bg-white/10" href="/projects" variant="secondary">Explore projects</ButtonLink>
           </div>
-        </Container>
-      </Section>
-
-      <Section aria-labelledby="outcomes-title" className="border-t border-[var(--line)]" id="systems">
-        <Container>
-          <SectionHeading
-            eyebrow="01 / What I build"
-            id="outcomes-title"
-            title="Systems designed around operational outcomes"
-            description="Production AI connects data, models, infrastructure, and operational workflows. These are the system outcomes this portfolio will examine."
-          />
-          <div className="mt-10 grid gap-px bg-[var(--line)] sm:grid-cols-2 lg:grid-cols-5">
-            {outcomes.map((outcome, index) => (
-              <OutcomeCard {...outcome} index={index + 1} key={outcome.title} />
-            ))}
+          <div className="mt-8 flex flex-wrap gap-x-6 gap-y-3 text-sm font-medium">
+            <a className="text-[var(--header-muted)] underline-offset-4 hover:text-[var(--contrast)] hover:underline" href={siteConfig.contact.linkedInUrl} rel="noopener noreferrer" target="_blank">LinkedIn<span className="sr-only"> (opens in a new tab)</span></a>
+            <a className="text-[var(--header-muted)] underline-offset-4 hover:text-[var(--contrast)] hover:underline" href={siteConfig.contact.gitHubUrl} rel="noopener noreferrer" target="_blank">GitHub<span className="sr-only"> (opens in a new tab)</span></a>
           </div>
-        </Container>
-      </Section>
+        </div>
+        <figure className="mx-auto w-full max-w-md border border-white/15 bg-white/5 p-3 lg:justify-self-end">
+          <Image alt="Portrait of Rajat Debnath" className="aspect-[3/4] h-auto w-full object-cover object-top" height={853} priority sizes="(max-width: 1024px) 448px, 32vw" src="/images/rajat-debnath.png" width={641} />
+        </figure>
+      </Container>
+    </Section>
 
-      <Section aria-labelledby="architecture-title" className="border-t border-[var(--line)]">
-        <Container>
-          <SectionHeading
-            eyebrow="02 / System architecture"
-            id="architecture-title"
-            title="From industrial data to operational decisions"
-            description="A production AI system is an operating chain, not an isolated model. Each layer must support the reliability of the next."
-          />
-          <ArchitectureFlow />
-        </Container>
-      </Section>
+    <Section aria-labelledby="what-i-do-title">
+      <Container className="grid gap-8 md:grid-cols-[0.75fr_1.25fr] md:gap-14">
+        <div><p className="font-mono text-xs font-semibold uppercase tracking-[0.16em] text-[var(--accent)]">What I do</p><h2 className="mt-3 text-3xl font-semibold tracking-tight" id="what-i-do-title">Build the system around the model.</h2></div>
+        <p className="max-w-[var(--article-width)] text-lg leading-8 text-[var(--muted)]">I work across data processing, AI product infrastructure, RAG pipelines, software integration, deployment, and automation. The goal is simple: make data and AI useful in real workflows.</p>
+      </Container>
+    </Section>
 
-      <Section aria-labelledby="focus-title" className="border-t border-[var(--line)]">
-        <Container className="grid gap-10 md:grid-cols-[1fr_1.5fr]">
-          <SectionHeading eyebrow="03 / Engineering focus" id="focus-title" title="The production AI stack" />
-          <div className="self-end">
-            <TagList label="Engineering focus areas" tags={engineeringFocus} />
-          </div>
-        </Container>
-      </Section>
+    <Section aria-labelledby="about-title" className="border-y border-[var(--line)] bg-[var(--surface)]" id="about">
+      <Container className="grid gap-10 lg:grid-cols-[16rem_minmax(0,var(--article-width))] lg:gap-16">
+        <div><p className="font-mono text-xs font-semibold uppercase tracking-[0.16em] text-[var(--accent)]">About</p><h2 className="mt-3 text-3xl font-semibold tracking-tight" id="about-title">Engineering from context to operation</h2><div className="mt-7"><TagList label="Core skills" tags={skills} /></div></div>
+        <div className="space-y-6 text-[1.0625rem] leading-8 text-[var(--muted)]">{resumeContent.about.map((paragraph) => <p key={paragraph}>{paragraph}</p>)}<p><Link className="font-semibold text-[var(--accent)] underline-offset-4 hover:underline" href="/experiences">View the full experience and education timeline →</Link></p></div>
+      </Container>
+    </Section>
 
-      {featuredProjects.length ? <Section aria-labelledby="projects-title" className="border-t border-[var(--line)]" id="featured-projects">
-        <Container>
-          <SectionHeading
-            eyebrow="04 / Featured projects"
-            id="projects-title"
-            title="Engineering case studies"
-            description="Verified projects will be added here with their constraints, architecture, implementation status, limitations, and evidence."
-          />
-          <div className="mt-10 grid gap-4 md:grid-cols-2">
-            {featuredProjects.map((project) => <ProjectCard project={project} key={project.slug} />)}
-          </div>
-        </Container>
-      </Section> : null}
+    <Section aria-labelledby="experience-preview-title">
+      <Container>
+        <div className="flex flex-wrap items-end justify-between gap-4"><div><p className="font-mono text-xs font-semibold uppercase tracking-[0.16em] text-[var(--accent)]">Experience</p><h2 className="mt-3 text-3xl font-semibold tracking-tight" id="experience-preview-title">Where the work has taken shape</h2></div><Link className="font-semibold text-[var(--accent)] hover:underline" href="/experiences">All experiences →</Link></div>
+        <div className="mt-9 grid gap-px bg-[var(--line)] md:grid-cols-3">{resumeContent.experience.slice(0, 3).map((entry) => <article className="bg-[var(--background)] p-6" key={`${entry.organization}-${entry.role}`}><p className="font-mono text-xs text-[var(--muted)]">{entry.startDate} — {entry.endDate}</p><h3 className="mt-4 text-xl font-semibold">{entry.role}</h3><p className="mt-1 text-[var(--accent)]">{entry.organization}</p><p className="mt-4 text-sm leading-6 text-[var(--muted)]">{entry.summary}</p></article>)}</div>
+      </Container>
+    </Section>
 
-      <Section aria-labelledby="writing-title" className="border-t border-[var(--line)]">
-        <Container>
-          <SectionHeading
-            eyebrow={`${featuredProjects.length ? "05" : "04"} / Technical writing`}
-            id="writing-title"
-            title="Notes on production AI engineering"
-            description="Published technical writing on architecture, deployment, observability, and reliability in industrial AI systems."
-          />
-          {featuredArticles.length ? (
-            <div className="mt-10 grid gap-4 md:grid-cols-2">
-              {featuredArticles.map(({ metadata: article }) => <ArticleCard article={article} key={article.slug} />)}
-            </div>
-          ) : <p className="mt-10 text-[var(--muted)]">No technical article has been published yet.</p>}
-        </Container>
-      </Section>
+    <Section aria-labelledby="projects-title" className="border-t border-[var(--line)]">
+      <Container>
+        <div className="flex flex-wrap items-end justify-between gap-4"><div><p className="font-mono text-xs font-semibold uppercase tracking-[0.16em] text-[var(--accent)]">Projects</p><h2 className="mt-3 text-3xl font-semibold tracking-tight" id="projects-title">Systems I am documenting</h2></div><Link className="font-semibold text-[var(--accent)] hover:underline" href="/projects">All projects →</Link></div>
+        <p className="mt-4 max-w-2xl text-[var(--muted)]">Current entries are clearly marked planned case-study spaces. Verified implementation details and results will be added only when available.</p>
+        <div className="mt-9 grid gap-4 md:grid-cols-2 xl:grid-cols-3">{projects.map((project) => <ProjectCard headingLevel={3} key={project.slug} project={project} />)}</div>
+      </Container>
+    </Section>
 
-      <Section aria-labelledby="principles-title" className="border-t border-[var(--line)]">
-        <Container className="grid gap-10 md:grid-cols-[1fr_1.5fr]">
-          <SectionHeading eyebrow={`${featuredProjects.length ? "06" : "05"} / Engineering principles`} id="principles-title" title="How systems should be built" />
-          <ol className="divide-y divide-[var(--line)] border-y border-[var(--line)]">
-            {principles.map((principle, index) => (
-              <li className="grid grid-cols-[2.5rem_1fr] gap-3 py-5" key={principle}>
-                <span aria-hidden="true" className="font-mono text-sm text-[var(--muted)]">
-                  {String(index + 1).padStart(2, "0")}
-                </span>
-                <span className="font-medium">{principle}</span>
-              </li>
-            ))}
-          </ol>
-        </Container>
-      </Section>
+    <Section aria-labelledby="blogs-title" className="border-t border-[var(--line)] bg-[var(--surface)]">
+      <Container>
+        <div className="flex flex-wrap items-end justify-between gap-4"><div><p className="font-mono text-xs font-semibold uppercase tracking-[0.16em] text-[var(--accent)]">Blogs</p><h2 className="mt-3 text-3xl font-semibold tracking-tight" id="blogs-title">Notes from the engineering path</h2></div><Link className="font-semibold text-[var(--accent)] hover:underline" href="/blog">All blogs →</Link></div>
+        <div className="mt-9 grid gap-4 md:grid-cols-2">{articles.map(({ metadata: article }) => <ArticleCard article={article} key={article.slug} />)}</div>
+      </Container>
+    </Section>
 
-      <CtaSection
-        actionHref="/contact"
-        actionLabel="Start a technical conversation"
-        description="Let's discuss the system, data, constraints, and deployment requirements."
-        id="contact"
-        title="Have a manufacturing AI problem?"
-      />
-    </>
-  );
+    <section className="bg-[var(--contrast)] py-14 text-[var(--dark)]">
+      <Container className="flex flex-col items-start justify-between gap-6 md:flex-row md:items-center">
+        <div><p className="font-mono text-xs font-semibold uppercase tracking-[0.16em]">Let&apos;s connect</p><h2 className="mt-2 text-3xl font-semibold tracking-tight">Have a data, AI, or automation problem?</h2></div>
+        <a className="inline-flex min-h-11 items-center justify-center border border-[var(--dark)] bg-[var(--dark)] px-5 font-semibold text-white transition-colors hover:bg-transparent hover:text-[var(--dark)]" href={siteConfig.contact.linkedInUrl} rel="noopener noreferrer" target="_blank">Start a conversation on LinkedIn<span className="sr-only"> (opens in a new tab)</span></a>
+      </Container>
+    </section>
+  </>;
 }

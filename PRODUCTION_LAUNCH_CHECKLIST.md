@@ -4,7 +4,7 @@ Status: **not launch-approved**. This checklist records the 2026-09-16 pre-launc
 
 ## Blocking decisions and inputs
 
-- [ ] Confirm the public identity and name spelling. The application currently publishes **Rajat Nath**; earlier project directions also used **Rajat Debnath**. Align the visible name, author byline, metadata, structured data, and resume with the name Rajat chooses.
+- [x] Public identity confirmed as **Rajat Debnath** and aligned across site identity, author byline, metadata, and structured data.
 - [ ] Provide and test at least one real contact destination: a public professional email address, a verified external form endpoint, or a verified professional profile with a clear way to initiate a conversation. The currently deployed `/contact` form is disabled, no email or profile URLs are configured, and the homepage CTA leads there. If a form provider is chosen, review its privacy terms and test a real submission with non-confidential test data.
 - [ ] Decide whether planned project and lab entries are acceptable at launch. They are deliberately and accurately labeled as placeholders; all eight detail URLs are `noindex` and excluded from the sitemap. The `/projects` and `/lab` listings still show only planned entries. If launch requires no visible unfinished content, supply verified work or defer those listings and navigation deliberately; do not invent outcomes.
 - [ ] Complete or deliberately defer `/resume`. It currently shows explicit experience, education, and project placeholders, has no PDF, and is `noindex`. Supply verified resume facts and a reviewed PDF before calling it a finished resume.

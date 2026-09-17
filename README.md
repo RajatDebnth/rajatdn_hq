@@ -1,6 +1,6 @@
-# Rajat Nath — Professional Portfolio
+# Rajat Debnath — Professional Portfolio
 
-The source for Rajat Nath's professional website, focused on production AI systems and infrastructure for advanced manufacturing.
+The source for Rajat Debnath's professional website, focused on AI systems, data infrastructure, and automation.
 
 ## Current scope
 
@@ -66,7 +66,7 @@ The website does not store contact data or run a custom contact backend. In an u
 
 The browser-readable `/resume` page draws verified positioning and focus from `src/content/resume/resume.ts`. Its experience and education arrays remain empty until Rajat supplies authoritative details; planned projects are not shown as resume achievements. The incomplete page is `noindex` and omitted from the sitemap until its factual sections are reviewed.
 
-The future PDF asset path is reserved as `public/resume/rajat-nath-resume.pdf` in `src/config/resume.ts`. Add only a real reviewed PDF, then set `resumeAsset.published` to `true` and verify the download URL, file content, accessibility, and consistency with the browser-readable page. No placeholder PDF is generated.
+The future PDF asset path is reserved as `public/resume/rajat-debnath-resume.pdf` in `src/config/resume.ts`. Add only a real reviewed PDF, then set `resumeAsset.published` to `true` and verify the download URL, file content, accessibility, and consistency with the browser-readable page. No placeholder PDF is generated.
 
 ## Project structure
 

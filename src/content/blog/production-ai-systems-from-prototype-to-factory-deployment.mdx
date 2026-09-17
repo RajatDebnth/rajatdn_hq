@@ -3,7 +3,7 @@ title: "Production AI Systems: From Prototype to Factory Deployment"
 slug: "production-ai-systems-from-prototype-to-factory-deployment"
 description: "A systems-level guide to the data, inference, deployment, monitoring, security, and operational work required to move industrial AI beyond a prototype."
 date: "2026-09-15"
-author: "Rajat Nath"
+author: "Rajat Debnath"
 category: "Production AI"
 tags:
   - "Production AI"
@@ -26,7 +26,7 @@ faq:
 
 An AI prototype answers a narrow question: *Can a model learn something useful from the available data?* A factory deployment answers a wider one: *Can a complete system deliver a trustworthy output to the right operational decision, under real constraints, day after day?*
 
-The gap is not just better model accuracy. It is the work of connecting industrial data, software interfaces, infrastructure, release controls, operators, and failure response. This article is a **general engineering framework**, not a report of a system I have deployed or an experiment I have completed. The [systems overview](/systems) describes the kinds of operational outputs such systems may support; the [architecture library](/architecture) explores their technical boundaries in more detail.
+The gap is not just better model accuracy. It is the work of connecting industrial data, software interfaces, infrastructure, release controls, operators, and failure response. This article is a **general engineering framework**, not a report of a system I have deployed or an experiment I have completed. My [experience timeline](/experiences) explains the work that shaped this systems perspective, while the [project collection](/projects) distinguishes planned case studies from verified implementation work.
 
 ## What a production AI system actually means
 
@@ -61,7 +61,7 @@ The reference flow below is a conceptual map, not an implemented factory design.
 
 <ArchitectureFlow />
 
-For a specific use case, draw an additional diagram that names source systems, trust boundaries, storage, model version, inference endpoint, output consumer, and fallback path. The architecture should show where the operational decision is made—not stop at the model server. The [industrial AI system architecture note](/architecture/industrial-ai-system-architecture) expands this systems view.
+For a specific use case, draw an additional diagram that names source systems, trust boundaries, storage, model version, inference endpoint, output consumer, and fallback path. The architecture should show where the operational decision is made—not stop at the model server. Future verified system designs will be documented in the [project collection](/projects).
 
 ## Industrial data requirements and ingestion
 
@@ -69,7 +69,7 @@ Industrial data is more than a sensor value. A measurement becomes interpretable
 
 Data ingestion should preserve raw observations and source timestamps, even when downstream processing creates a standardized representation. Specify expected frequency, permitted delay, missing-value policy, duplication behavior, schema evolution, and replay requirements. If a source is disconnected, decide whether to buffer, skip inference, or continue with a bounded local state. Never silently treat stale data as current.
 
-This is also a governance problem. Determine who owns each source, who can change its schema, how access is granted, and how downstream consumers are notified. The [manufacturing data pipeline architecture](/architecture/manufacturing-data-pipeline) describes a conceptual acquisition-to-data-product flow.
+This is also a governance problem. Determine who owns each source, who can change its schema, how access is granted, and how downstream consumers are notified.
 
 ## Processing data for a real decision
 
@@ -95,7 +95,7 @@ Deployment should promote an immutable model artifact with compatible configurat
 
 Edge inference can keep a time-sensitive path near equipment and reduce dependency on wide-area connectivity. Cloud inference can centralize compute, governance, and updates. Neither is intrinsically “production-ready.” Placement follows the operational budget: required response time, data volume and movement, connectivity, hardware limits, plant security policy, and fleet maintenance effort.
 
-For a hybrid design, label which path is authoritative when connectivity is lost. If inference remains local, the edge runtime needs a controlled artifact, health checks, bounded storage, and a recoverable update process. If inference depends on cloud availability, the consuming workflow needs a fallback. The [edge AI architecture note](/architecture/edge-ai-architecture) examines this boundary.
+For a hybrid design, label which path is authoritative when connectivity is lost. If inference remains local, the edge runtime needs a controlled artifact, health checks, bounded storage, and a recoverable update process. If inference depends on cloud availability, the consuming workflow needs a fallback.
 
 ## Monitoring, drift, and observability
 
@@ -103,7 +103,7 @@ Monitoring must cover more than endpoint uptime. A useful set of layers is: sour
 
 **Data drift** is a change in input distribution or operating context relative to a reference period. It may be harmless, expected, or serious. **Model drift** is a change in model behavior or usefulness for the target decision. In practice, both need context: a new production recipe can change sensor distributions without making a model unusable, while an unchanged aggregate distribution can hide a problem in one asset or regime. Drift detection is an investigation trigger, not automatic proof that retraining will help.
 
-Observability connects symptoms across layers. If alert volume rises, can the team tell whether source data changed, a transformation version changed, a threshold changed, or the process itself changed? Dashboards and alerts should have owners, expected ranges, escalation rules, and runbooks. The [AI observability architecture](/architecture/ai-observability-architecture) gives a conceptual layered model.
+Observability connects symptoms across layers. If alert volume rises, can the team tell whether source data changed, a transformation version changed, a threshold changed, or the process itself changed? Dashboards and alerts should have owners, expected ranges, escalation rules, and runbooks.
 
 ## Reliability, security, and operational integration
 
@@ -139,7 +139,7 @@ The architecture notes on this site are **conceptual designs**, and the current 
 
 ## Reference guidance and scope
 
-This article is Rajat Nath's synthesis of general engineering principles, not a report of firsthand deployment or an endorsement of a particular vendor architecture. These primary references provide additional context for the security, lifecycle, and monitoring considerations discussed above:
+This article is Rajat Debnath's synthesis of general engineering principles, not a report of firsthand deployment or an endorsement of a particular vendor architecture. These primary references provide additional context for the security, lifecycle, and monitoring considerations discussed above:
 
 - [NIST SP 800-82 Rev. 3: Guide to Operational Technology (OT) Security](https://csrc.nist.gov/pubs/sp/800/82/r3/final) — operational-technology security guidance, including the constraints of industrial environments.
 - [NIST AI Risk Management Framework 1.0](https://www.nist.gov/itl/ai-risk-management-framework) — a voluntary framework for managing AI risks across design, deployment, operation, and monitoring.

@@ -1,12 +1,12 @@
 export const siteConfig = {
-  name: "Rajat Nath",
+  name: "Rajat Debnath",
   givenName: "Rajat",
-  familyName: "Nath",
+  familyName: "Debnath",
   professionalTitle: "AI Systems & Infrastructure Engineer",
   specialization: "Production AI systems for advanced manufacturing",
-  defaultTitle: "Rajat Nath — AI Systems & Infrastructure Engineer",
+  defaultTitle: "Rajat Debnath — AI Systems Engineer",
   description:
-    "Rajat Nath is an AI Systems & Infrastructure Engineer focused on production AI systems for advanced manufacturing.",
+    "Rajat Debnath is an AI Systems Engineer building data pipelines, automation, and infrastructure that turn operational data into clear action.",
   url: "https://rajatdn.vercel.app",
   locale: "en",
   openGraphLocale: "en_IN",
@@ -18,7 +18,7 @@ export const siteConfig = {
     path: "/opengraph-image",
     width: 1200,
     height: 630,
-    alt: "Rajat Nath — AI Systems & Infrastructure Engineer",
+    alt: "Rajat Debnath — AI Systems Engineer",
   },
   verification: {
     google: "D6y4ykPvJwJPeroUiQJFpDWfwUmw15LjXE6jTwIn74s",
@@ -26,8 +26,8 @@ export const siteConfig = {
   contact: {
     formEndpoint: process.env.CONTACT_FORM_ENDPOINT || null,
     email: process.env.CONTACT_EMAIL || null,
-    linkedInUrl: process.env.CONTACT_LINKEDIN_URL || null,
-    gitHubUrl: process.env.CONTACT_GITHUB_URL || null,
+    linkedInUrl: process.env.CONTACT_LINKEDIN_URL || "https://www.linkedin.com/in/rajat-debnath/",
+    gitHubUrl: process.env.CONTACT_GITHUB_URL || "https://github.com/Rajat22UEE",
   },
   topics: [
     "Industrial AI",

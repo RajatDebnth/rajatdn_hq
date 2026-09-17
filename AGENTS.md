@@ -4,7 +4,7 @@ These instructions apply to the entire repository.
 
 ## Product intent
 
-Build a professional authority and technical publishing platform for Rajat Nath, positioned as an AI Systems & Infrastructure Engineer specializing in production AI systems for advanced manufacturing. This is not a generic developer portfolio.
+Build a professional authority and technical publishing platform for Rajat Debnath, positioned as an AI Systems Engineer focused on production-oriented AI systems, data infrastructure, and automation. This is not a generic developer portfolio.
 
 ## Accuracy and evidence
 

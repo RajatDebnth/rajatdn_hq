@@ -26,7 +26,7 @@ export function MobileNavigation({ items }: MobileNavigationProps) {
       <button
         aria-controls="mobile-navigation"
         aria-expanded={open}
-        className="inline-flex min-h-11 items-center border border-[var(--control-line)] px-3 font-mono text-xs font-semibold uppercase tracking-[0.08em] hover:bg-[var(--surface-subtle)]"
+        className="inline-flex min-h-11 items-center border border-white/35 px-3 font-mono text-xs font-semibold uppercase tracking-[0.08em] text-white hover:bg-white/10"
         onClick={() => setOpen((current) => !current)}
         ref={buttonRef}
         type="button"
@@ -35,14 +35,14 @@ export function MobileNavigation({ items }: MobileNavigationProps) {
       </button>
         <nav
           aria-label="Mobile navigation"
-          className="absolute right-0 top-[calc(100%+0.75rem)] z-40 max-h-[calc(100dvh-6rem)] min-w-56 overflow-y-auto border border-[var(--line-strong)] bg-[var(--surface)] p-2 shadow-[0_12px_32px_rgba(0,0,0,0.14)]"
+          className="absolute right-0 top-[calc(100%+0.75rem)] z-40 max-h-[calc(100dvh-6rem)] min-w-56 overflow-y-auto border border-white/15 bg-[var(--dark)] p-2 text-white shadow-[0_12px_32px_rgba(0,0,0,0.28)]"
           hidden={!open}
           id="mobile-navigation"
         >
           <ul>
             {items.map((item) => (
               <li key={item.href}>
-                <Link className="block px-4 py-3 font-medium hover:bg-[var(--surface-subtle)]" href={item.href} onClick={() => setOpen(false)}>
+                <Link className="block px-4 py-3 font-medium hover:bg-white/10" href={item.href} onClick={() => setOpen(false)}>
                   {item.label}
                 </Link>
               </li>

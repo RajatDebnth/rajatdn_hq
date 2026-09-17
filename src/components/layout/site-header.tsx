@@ -8,7 +8,7 @@ import { siteConfig } from "@/config/site";
 
 export function SiteHeader() {
   return (
-    <header className="sticky top-0 z-30 border-b border-[var(--line)] bg-[color:var(--background)]/95 backdrop-blur-sm">
+    <header className="sticky top-0 z-30 border-b border-white/10 bg-[var(--dark)] text-white">
       <Container className="flex min-h-16 items-center justify-between gap-6">
         <Link className="font-semibold tracking-tight no-underline" href="/">{siteConfig.name}</Link>
         <div className="hidden lg:block"><Navigation items={availableNavigation} /></div>

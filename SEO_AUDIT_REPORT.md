@@ -6,7 +6,7 @@ Audit date: 2026-09-15. Scope: the repository's production build, rendered HTML 
 
 The site has a strong technical foundation: server-rendered, crawlable pages; route-specific metadata; semantic content; a canonical base URL; robots and sitemap endpoints; visible authorship; and restrained schema. Four real issues were corrected: planned-only detail pages were included in the sitemap and indexable, three listing routes skipped H2, the homepage represented a published article as future-only content, and the root sitemap URL differed from its rendered canonical by a trailing slash. A fifth content gap—absence of primary technical references in the first article—was addressed without adding unsupported experience claims.
 
-The remaining launch constraint is editorial rather than technical: there is one published article, but all project and lab entries are placeholders. The site's identity is also inconsistent across user-supplied inputs (“Rajat Nath” versus “Rajat Debnath”); the site's configured positioning was deliberately **not** changed in this audit. The owner must confirm the intended public/legal display name before Search Console submission or wider promotion.
+The remaining launch constraint is editorial rather than technical: there is one published article, but all project entries are placeholders. The public identity has since been confirmed as Rajat Debnath.
 
 ## Method and coverage
 
@@ -53,7 +53,7 @@ The content is crawlable and understandable without an AI-search-specific file, 
 
 ## Unresolved risks and owner inputs
 
-- **Identity:** Confirm whether the public name should be “Rajat Nath” or “Rajat Debnath.” Current site config and Article authorship say the former; the previously supplied LinkedIn URL and some earlier project requests say the latter. Do not merge identities in Person schema or change author claims without confirmation.
+- **Identity:** Confirmed as “Rajat Debnath” and updated across the public site.
 - **Thin launch content:** The indexable project/lab collection pages chiefly describe planned work. Add real, evidenced case studies/experiments before expecting them to be meaningful acquisition pages. Keep individual placeholders noindexed until then.
 - **Contact conversion:** The contact page has no verified address, social links, or active form endpoint. It is indexable and reachable, but not yet a working lead channel. Supply real contact details or an approved form provider in a separate phase.
 - **Deployment:** Validate HTTP status codes, canonical host, social previews, sitemap fetchability, and Search Console indexing on the final public Vercel URL. Local build output cannot establish live crawler behavior.

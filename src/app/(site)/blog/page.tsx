@@ -10,11 +10,11 @@ import { getPublishedArticles } from "@/lib/content/blog";
 import { createPageMetadata } from "@/lib/metadata/create-page-metadata";
 import { createBreadcrumbStructuredData, createWebPageStructuredData } from "@/lib/seo/structured-data";
 
-const description = "Technical writing by Rajat Nath on production AI systems, industrial data, infrastructure, reliability, and advanced manufacturing.";
+const description = "Technical writing by Rajat Debnath on production AI systems, industrial data, infrastructure, reliability, and advanced manufacturing.";
 const baseMetadata = createPageMetadata({ title: "Technical Blog", description, path: "/blog" });
 export const metadata: Metadata = {
   ...baseMetadata,
-  alternates: { ...baseMetadata.alternates, types: { "application/rss+xml": [{ url: "/rss.xml", title: "Rajat Nath — Technical Blog RSS" }] } },
+  alternates: { ...baseMetadata.alternates, types: { "application/rss+xml": [{ url: "/rss.xml", title: "Rajat Debnath — Technical Blog RSS" }] } },
 };
 
 export default function BlogPage() {

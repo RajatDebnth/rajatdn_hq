@@ -13,7 +13,7 @@ export function Navigation({ items, label = "Primary navigation" }: NavigationPr
       <ul className="flex items-center gap-1">
         {items.map((item) => (
           <li key={item.href}>
-            <Link className="block rounded-[var(--radius-sm)] px-3 py-2 text-sm font-medium text-[var(--muted)] transition-colors hover:bg-[var(--surface-subtle)] hover:text-[var(--foreground)]" href={item.href}>
+            <Link className="block rounded-[var(--radius-sm)] px-3 py-2 text-sm font-medium text-[var(--header-muted)] transition-colors hover:bg-white/10 hover:text-white" href={item.href}>
               {item.label}
             </Link>
           </li>

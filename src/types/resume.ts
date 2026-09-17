@@ -5,6 +5,7 @@ export type ResumeExperience = {
   startDate: string;
   endDate?: string;
   summary?: string;
+  highlights?: readonly string[];
 };
 
 export type ResumeEducation = {
@@ -16,6 +17,7 @@ export type ResumeEducation = {
 };
 
 export type ResumeContent = {
+  about: readonly string[];
   summary: string;
   positioning: string;
   capabilityFocus: readonly { area: string; description: string }[];

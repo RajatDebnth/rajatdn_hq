@@ -16,7 +16,7 @@ export const projectEntries = [
     placeholder: true,
     relatedArticles: [{ slug: "production-ai-systems-from-prototype-to-factory-deployment", title: "Production AI Systems: From Prototype to Factory Deployment" }],
     seoTitle: "Predictive Maintenance System — Planned Project",
-    seoDescription: "A clearly labeled placeholder for a future predictive maintenance engineering case study by Rajat Nath.",
+    seoDescription: "A clearly labeled placeholder for a future predictive maintenance engineering case study by Rajat Debnath.",
   },
   {
     kind: "project",
@@ -31,7 +31,7 @@ export const projectEntries = [
     placeholder: true,
     relatedArticles: [{ slug: "production-ai-systems-from-prototype-to-factory-deployment", title: "Production AI Systems: From Prototype to Factory Deployment" }],
     seoTitle: "Industrial Anomaly Detection System — Planned Project",
-    seoDescription: "A clearly labeled placeholder for a future industrial anomaly detection engineering case study by Rajat Nath.",
+    seoDescription: "A clearly labeled placeholder for a future industrial anomaly detection engineering case study by Rajat Debnath.",
   },
   {
     kind: "project",
@@ -46,6 +46,6 @@ export const projectEntries = [
     placeholder: true,
     relatedArticles: [{ slug: "production-ai-systems-from-prototype-to-factory-deployment", title: "Production AI Systems: From Prototype to Factory Deployment" }],
     seoTitle: "Production Optimization System — Planned Project",
-    seoDescription: "A clearly labeled placeholder for a future production optimization engineering case study by Rajat Nath.",
+    seoDescription: "A clearly labeled placeholder for a future production optimization engineering case study by Rajat Debnath.",
   },
 ] as const satisfies readonly ProjectMetadata[];

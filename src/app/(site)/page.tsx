@@ -4,6 +4,7 @@ import Link from "next/link";
 
 import { ArticleCard } from "@/components/cards/article-card";
 import { ProjectCard } from "@/components/cards/project-card";
+import { KymaAiLink, TextWithKymaAiLink } from "@/components/content/kyma-ai-link";
 import { JsonLd } from "@/components/seo/json-ld";
 import { ButtonLink } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
@@ -60,14 +61,14 @@ export default function Home() {
     <Section aria-labelledby="about-title" className="border-y border-[var(--line)] bg-[var(--surface)]" id="about">
       <Container className="grid gap-10 lg:grid-cols-[16rem_minmax(0,var(--article-width))] lg:gap-16">
         <div><p className="font-mono text-xs font-semibold uppercase tracking-[0.16em] text-[var(--accent)]">About</p><h2 className="mt-3 text-3xl font-semibold tracking-tight" id="about-title">Engineering from context to operation</h2><div className="mt-7"><TagList label="Core skills" tags={skills} /></div></div>
-        <div className="space-y-6 text-[1.0625rem] leading-8 text-[var(--muted)]">{resumeContent.about.map((paragraph) => <p key={paragraph}>{paragraph}</p>)}<p><Link className="font-semibold text-[var(--accent)] underline-offset-4 hover:underline" href="/experiences">View the full experience and education timeline →</Link></p></div>
+        <div className="space-y-6 text-[1.0625rem] leading-8 text-[var(--muted)]">{resumeContent.about.map((paragraph) => <p key={paragraph}><TextWithKymaAiLink>{paragraph}</TextWithKymaAiLink></p>)}<p><Link className="font-semibold text-[var(--accent)] underline-offset-4 hover:underline" href="/experiences">View the full experience and education timeline →</Link></p></div>
       </Container>
     </Section>
 
     <Section aria-labelledby="experience-preview-title">
       <Container>
         <div className="flex flex-wrap items-end justify-between gap-4"><div><p className="font-mono text-xs font-semibold uppercase tracking-[0.16em] text-[var(--accent)]">Experience</p><h2 className="mt-3 text-3xl font-semibold tracking-tight" id="experience-preview-title">Where the work has taken shape</h2></div><Link className="font-semibold text-[var(--accent)] hover:underline" href="/experiences">All experiences →</Link></div>
-        <div className="mt-9 grid gap-px bg-[var(--line)] md:grid-cols-3">{resumeContent.experience.slice(0, 3).map((entry) => <article className="bg-[var(--background)] p-6" key={`${entry.organization}-${entry.role}`}><p className="font-mono text-xs text-[var(--muted)]">{entry.startDate} — {entry.endDate}</p><h3 className="mt-4 text-xl font-semibold">{entry.role}</h3><p className="mt-1 text-[var(--accent)]">{entry.organization}</p><p className="mt-4 text-sm leading-6 text-[var(--muted)]">{entry.summary}</p></article>)}</div>
+        <div className="mt-9 grid gap-px bg-[var(--line)] md:grid-cols-3">{resumeContent.experience.slice(0, 3).map((entry) => <article className="bg-[var(--background)] p-6" key={`${entry.organization}-${entry.role}`}><p className="font-mono text-xs text-[var(--muted)]">{entry.startDate} — {entry.endDate}</p><h3 className="mt-4 text-xl font-semibold">{entry.role}</h3><p className="mt-1 text-[var(--accent)]">{entry.organization === "Kyma AI Innovations" ? <KymaAiLink className="underline-offset-4 hover:underline" /> : entry.organization}</p><p className="mt-4 text-sm leading-6 text-[var(--muted)]">{entry.summary}</p></article>)}</div>
       </Container>
     </Section>
 

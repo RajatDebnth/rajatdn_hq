@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { PageHeader } from "@/components/content/page-header";
+import { KymaAiLink } from "@/components/content/kyma-ai-link";
 import { JsonLd } from "@/components/seo/json-ld";
 import { Container } from "@/components/ui/container";
 import { Section } from "@/components/ui/section";
@@ -40,7 +41,7 @@ export default function ExperiencesPage() {
                 </div>
                 <div>
                   <h2 className="text-2xl font-semibold tracking-tight">{entry.role}</h2>
-                  <p className="mt-1 font-medium text-[var(--accent)]">{entry.organization}</p>
+                  <p className="mt-1 font-medium text-[var(--accent)]">{entry.organization === "Kyma AI Innovations" ? <KymaAiLink className="underline-offset-4 hover:underline" /> : entry.organization}</p>
                   {entry.summary ? <p className="mt-4 max-w-[var(--article-width)] leading-7 text-[var(--muted)]">{entry.summary}</p> : null}
                   {entry.highlights?.length ? <ul className="mt-5 max-w-[var(--article-width)] space-y-2 text-[var(--muted)]">{entry.highlights.map((highlight) => <li className="flex gap-3" key={highlight}><span aria-hidden="true" className="text-[var(--contrast)]">—</span><span>{highlight}</span></li>)}</ul> : null}
                 </div>

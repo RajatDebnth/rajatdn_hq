@@ -20,6 +20,9 @@ export const siteConfig = {
     height: 630,
     alt: "Rajat Nath — AI Systems & Infrastructure Engineer",
   },
+  verification: {
+    google: "D6y4ykPvJwJPeroUiQJFpDWfwUmw15LjXE6jTwIn74s",
+  },
   contact: {
     formEndpoint: process.env.CONTACT_FORM_ENDPOINT || null,
     email: process.env.CONTACT_EMAIL || null,

@@ -58,6 +58,9 @@ export const metadata: Metadata = {
       "max-video-preview": -1,
     },
   },
+  verification: {
+    google: siteConfig.verification.google,
+  },
   manifest: "/manifest.webmanifest",
   formatDetection: {
     email: false,

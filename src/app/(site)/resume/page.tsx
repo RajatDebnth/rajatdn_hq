@@ -16,7 +16,7 @@ import { createBreadcrumbStructuredData, createWebPageStructuredData } from "@/l
 
 const description = "Browser-readable professional resume overview for Rajat Nath, AI Systems & Infrastructure Engineer focused on production AI systems for advanced manufacturing.";
 export const metadata: Metadata = {
-  ...createPageMetadata({ title: "Rajat Nath — Resume", description, path: "/resume", noIndex: true }),
+  ...createPageMetadata({ title: "Resume", description, path: "/resume", noIndex: true }),
   robots: { index: false, follow: true },
 };
 

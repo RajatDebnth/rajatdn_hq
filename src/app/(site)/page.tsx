@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 
 import { ArchitectureFlow } from "@/components/home/architecture-flow";
 import { ArticleCard } from "@/components/cards/article-card";
+import { ProjectCard } from "@/components/cards/project-card";
 import { OutcomeCard } from "@/components/home/outcome-card";
-import { PlaceholderCard } from "@/components/home/placeholder-card";
 import { SectionHeading } from "@/components/home/section-heading";
 import { CtaSection } from "@/components/sections/cta-section";
 import { JsonLd } from "@/components/seo/json-ld";
@@ -13,6 +13,7 @@ import { Section } from "@/components/ui/section";
 import { TagList } from "@/components/ui/tag-list";
 import { siteConfig } from "@/config/site";
 import { getPublishedArticles } from "@/lib/content/blog";
+import { getAllProjects } from "@/lib/content/projects";
 import { createPageMetadata } from "@/lib/metadata/create-page-metadata";
 import { createWebPageStructuredData } from "@/lib/seo/structured-data";
 
@@ -68,6 +69,7 @@ export const metadata: Metadata = createPageMetadata({
 
 export default function Home() {
   const featuredArticles = getPublishedArticles().filter(({ metadata: article }) => article.featured);
+  const featuredProjects = getAllProjects().filter((project) => project.featured && !project.placeholder);
   return (
     <>
       <JsonLd
@@ -135,7 +137,7 @@ export default function Home() {
         </Container>
       </Section>
 
-      <Section aria-labelledby="projects-title" className="border-t border-[var(--line)]" id="featured-projects">
+      {featuredProjects.length ? <Section aria-labelledby="projects-title" className="border-t border-[var(--line)]" id="featured-projects">
         <Container>
           <SectionHeading
             eyebrow="04 / Featured projects"
@@ -144,24 +146,15 @@ export default function Home() {
             description="Verified projects will be added here with their constraints, architecture, implementation status, limitations, and evidence."
           />
           <div className="mt-10 grid gap-4 md:grid-cols-2">
-            <PlaceholderCard
-              label="Project slot 01"
-              title="Case study reserved"
-              description="No project claim has been published for this slot."
-            />
-            <PlaceholderCard
-              label="Project slot 02"
-              title="Case study reserved"
-              description="This slot will remain a placeholder until verified project material is available."
-            />
+            {featuredProjects.map((project) => <ProjectCard project={project} key={project.slug} />)}
           </div>
         </Container>
-      </Section>
+      </Section> : null}
 
       <Section aria-labelledby="writing-title" className="border-t border-[var(--line)]">
         <Container>
           <SectionHeading
-            eyebrow="05 / Technical writing"
+            eyebrow={`${featuredProjects.length ? "05" : "04"} / Technical writing`}
             id="writing-title"
             title="Notes on production AI engineering"
             description="Published technical writing on architecture, deployment, observability, and reliability in industrial AI systems."
@@ -176,7 +169,7 @@ export default function Home() {
 
       <Section aria-labelledby="principles-title" className="border-t border-[var(--line)]">
         <Container className="grid gap-10 md:grid-cols-[1fr_1.5fr]">
-          <SectionHeading eyebrow="06 / Engineering principles" id="principles-title" title="How systems should be built" />
+          <SectionHeading eyebrow={`${featuredProjects.length ? "06" : "05"} / Engineering principles`} id="principles-title" title="How systems should be built" />
           <ol className="divide-y divide-[var(--line)] border-y border-[var(--line)]">
             {principles.map((principle, index) => (
               <li className="grid grid-cols-[2.5rem_1fr] gap-3 py-5" key={principle}>

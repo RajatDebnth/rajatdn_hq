@@ -26,7 +26,7 @@ faq:
 
 An AI prototype answers a narrow question: *Can a model learn something useful from the available data?* A factory deployment answers a wider one: *Can a complete system deliver a trustworthy output to the right operational decision, under real constraints, day after day?*
 
-The gap is not just better model accuracy. It is the work of connecting industrial data, software interfaces, infrastructure, release controls, operators, and failure response. This article is a **general engineering framework**, not a report of a system I have deployed or an experiment I have completed. My [experience timeline](/experiences) explains the work that shaped this systems perspective, while the [project collection](/projects) distinguishes planned case studies from verified implementation work.
+The gap is not just better model accuracy. It is the work of connecting industrial data, software interfaces, infrastructure, release controls, operators, and failure response. This article is a **general engineering framework**, not a report of a system I have deployed or an experiment I have completed. My [experience timeline](/experiences) explains the work that shaped this systems perspective.
 
 ## What a production AI system actually means
 
@@ -61,7 +61,7 @@ The reference flow below is a conceptual map, not an implemented factory design.
 
 <ArchitectureFlow />
 
-For a specific use case, draw an additional diagram that names source systems, trust boundaries, storage, model version, inference endpoint, output consumer, and fallback path. The architecture should show where the operational decision is made—not stop at the model server. Future verified system designs will be documented in the [project collection](/projects).
+For a specific use case, draw an additional diagram that names source systems, trust boundaries, storage, model version, inference endpoint, output consumer, and fallback path. The architecture should show where the operational decision is made—not stop at the model server.
 
 ## Industrial data requirements and ingestion
 
@@ -135,7 +135,7 @@ Use this as a design review, not a claim that every system needs the same stack.
 
 A prototype can justify further investigation. It cannot, by itself, establish that the complete operating chain is reliable. The transition to production begins when data contracts, decision boundaries, deployment policy, monitoring, security, and human ownership become first-class design work.
 
-The architecture notes on this site are **conceptual designs**, and the current [project collection](/projects) contains clearly marked planned placeholders. For example, the [Predictive Maintenance System entry](/projects/predictive-maintenance-system) is a reserved case-study slot—not evidence of a factory deployment or completed experiment. Future case studies will be published with implementation status, constraints, limitations, and results only when those facts can be verified.
+The system descriptions in this article are **conceptual designs**, not evidence of a factory deployment or completed experiment. Any future implementation write-up will state its status, constraints, limitations, and results only when those facts can be verified.
 
 ## Reference guidance and scope
 

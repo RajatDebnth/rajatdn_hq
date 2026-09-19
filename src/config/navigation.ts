@@ -5,7 +5,6 @@ export const navigation = {
     { href: "/", label: "Home", available: true },
     { href: "/blog", label: "Blogs", available: true },
     { href: "/experiences", label: "Experiences", available: true },
-    { href: "/projects", label: "Projects", available: true },
   ],
   secondary: [],
 } as const satisfies NavigationGroup;

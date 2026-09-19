@@ -3,7 +3,6 @@ import Image from "next/image";
 import Link from "next/link";
 
 import { ArticleCard } from "@/components/cards/article-card";
-import { ProjectCard } from "@/components/cards/project-card";
 import { KymaAiLink, TextWithKymaAiLink } from "@/components/content/kyma-ai-link";
 import { JsonLd } from "@/components/seo/json-ld";
 import { ButtonLink } from "@/components/ui/button";
@@ -13,7 +12,6 @@ import { TagList } from "@/components/ui/tag-list";
 import { siteConfig } from "@/config/site";
 import { resumeContent } from "@/content/resume/resume";
 import { getPublishedArticles } from "@/lib/content/blog";
-import { getAllProjects } from "@/lib/content/projects";
 import { createPageMetadata } from "@/lib/metadata/create-page-metadata";
 import { createWebPageStructuredData } from "@/lib/seo/structured-data";
 
@@ -24,7 +22,6 @@ export const metadata: Metadata = createPageMetadata({ title: "AI Systems Engine
 
 export default function Home() {
   const articles = getPublishedArticles().slice(0, 2);
-  const projects = getAllProjects().slice(0, 3);
 
   return <>
     <JsonLd data={createWebPageStructuredData({ name: "Rajat Debnath — AI Systems Engineer", description: homepageDescription, path: "/" })} />
@@ -38,7 +35,7 @@ export default function Home() {
           <p className="mt-6 max-w-2xl text-lg leading-8 text-[var(--header-muted)]">I build AI systems, data pipelines, and automation that connect raw operational data to useful products and decisions.</p>
           <div className="mt-9 flex flex-wrap gap-3">
             <ButtonLink href="/experiences">See the work behind the systems</ButtonLink>
-            <ButtonLink className="border-white/35 text-white hover:border-white hover:bg-white/10" href="/projects" variant="secondary">Explore projects</ButtonLink>
+            <ButtonLink className="border-white/35 text-white hover:border-white hover:bg-white/10" href="/blog" variant="secondary">Read technical writing</ButtonLink>
           </div>
           <div className="mt-8 flex flex-wrap gap-x-6 gap-y-3 text-sm font-medium">
             <a className="text-[var(--header-muted)] underline-offset-4 hover:text-[var(--contrast)] hover:underline" href={siteConfig.contact.linkedInUrl} rel="noopener noreferrer" target="_blank">LinkedIn<span className="sr-only"> (opens in a new tab)</span></a>
@@ -69,14 +66,6 @@ export default function Home() {
       <Container>
         <div className="flex flex-wrap items-end justify-between gap-4"><div><p className="font-mono text-xs font-semibold uppercase tracking-[0.16em] text-[var(--accent)]">Experience</p><h2 className="mt-3 text-3xl font-semibold tracking-tight" id="experience-preview-title">Where the work has taken shape</h2></div><Link className="font-semibold text-[var(--accent)] hover:underline" href="/experiences">All experiences →</Link></div>
         <div className="mt-9 grid gap-px bg-[var(--line)] md:grid-cols-3">{resumeContent.experience.slice(0, 3).map((entry) => <article className="bg-[var(--background)] p-6" key={`${entry.organization}-${entry.role}`}><p className="font-mono text-xs text-[var(--muted)]">{entry.startDate} — {entry.endDate}</p><h3 className="mt-4 text-xl font-semibold">{entry.role}</h3><p className="mt-1 text-[var(--accent)]">{entry.organization === "Kyma AI Innovations" ? <KymaAiLink className="underline-offset-4 hover:underline" /> : entry.organization}</p><p className="mt-4 text-sm leading-6 text-[var(--muted)]">{entry.summary}</p></article>)}</div>
-      </Container>
-    </Section>
-
-    <Section aria-labelledby="projects-title" className="border-t border-[var(--line)]">
-      <Container>
-        <div className="flex flex-wrap items-end justify-between gap-4"><div><p className="font-mono text-xs font-semibold uppercase tracking-[0.16em] text-[var(--accent)]">Projects</p><h2 className="mt-3 text-3xl font-semibold tracking-tight" id="projects-title">Systems I am documenting</h2></div><Link className="font-semibold text-[var(--accent)] hover:underline" href="/projects">All projects →</Link></div>
-        <p className="mt-4 max-w-2xl text-[var(--muted)]">Current entries are clearly marked planned case-study spaces. Verified implementation details and results will be added only when available.</p>
-        <div className="mt-9 grid gap-4 md:grid-cols-2 xl:grid-cols-3">{projects.map((project) => <ProjectCard headingLevel={3} key={project.slug} project={project} />)}</div>
       </Container>
     </Section>
 

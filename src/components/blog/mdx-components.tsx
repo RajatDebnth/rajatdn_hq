@@ -1,5 +1,4 @@
 import { isValidElement, type ComponentPropsWithoutRef, type ReactNode } from "react";
-import Link from "next/link";
 import Image from "next/image";
 
 import { ArchitectureFlow } from "@/components/home/architecture-flow";
@@ -7,7 +6,6 @@ import { TechnicalFlowDiagram } from "@/components/architecture/technical-flow-d
 import { Callout } from "@/components/ui/callout";
 import { DataTable } from "@/components/content/data-table";
 import { CodeBlock } from "@/components/content/code-block";
-import { getProjectBySlug, isValidSlug } from "@/lib/content/projects";
 
 function idFromChildren(children: ReactNode) {
   return String(children).toLowerCase().replace(/[^a-z0-9\s-]/g, "").trim().replace(/\s+/g, "-");
@@ -20,11 +18,6 @@ export function CaptionedImage({ alt, caption, height, src, width }: { alt: stri
 
 export function ArchitectureBlock({ children, title }: { children: ReactNode; title: string }) {
   return <aside className="my-8 border-l-2 border-[var(--accent)] bg-[var(--surface)] p-5"><h3 className="font-semibold">{title}</h3><div className="mt-3 leading-7 text-[var(--muted)]">{children}</div></aside>;
-}
-
-export function RelatedProjectLink({ slug, title }: { slug: string; title: string }) {
-  if (!isValidSlug(slug) || !getProjectBySlug(slug)) throw new Error(`Unknown related project slug: ${slug}`);
-  return <Link className="font-medium text-[var(--accent)] underline-offset-4 hover:underline" href={`/projects/${slug}`}>{title}</Link>;
 }
 
 function MarkdownPre({ children }: { children?: ReactNode }) {
@@ -56,5 +49,4 @@ export const blogMdxComponents = {
   TechnicalFlowDiagram,
   ArchitectureBlock,
   CaptionedImage,
-  RelatedProjectLink,
 };

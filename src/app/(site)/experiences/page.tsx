@@ -65,7 +65,7 @@ export default function ExperiencesPage() {
           </section>
 
           <section className="border-t border-[var(--line)] py-10 text-[var(--muted)]">
-            <p>See the systems I am documenting in <Link className="font-medium text-[var(--accent)] hover:underline" href="/projects">Projects</Link>, or read my technical thinking in <Link className="font-medium text-[var(--accent)] hover:underline" href="/blog">Blogs</Link>.</p>
+            <p>Read my technical thinking and systems notes in <Link className="font-medium text-[var(--accent)] hover:underline" href="/blog">Blogs</Link>.</p>
           </section>
         </Container>
       </Section>

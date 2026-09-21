@@ -2,11 +2,11 @@ export const siteConfig = {
   name: "Rajat Debnath",
   givenName: "Rajat",
   familyName: "Debnath",
-  professionalTitle: "AI Systems & Infrastructure Engineer",
+  professionalTitle: "AI Engineer",
   specialization: "Production AI systems for advanced manufacturing",
-  defaultTitle: "Rajat Debnath — AI Systems Engineer",
+  defaultTitle: "Rajat Debnath — AI Engineer",
   description:
-    "Rajat Debnath is an AI Systems Engineer building data pipelines, automation, and infrastructure that turn operational data into clear action.",
+    "Rajat Debnath is an AI Engineer building data pipelines, automation, and infrastructure that turn operational data into clear action.",
   url: "https://rajatdn.vercel.app",
   locale: "en",
   openGraphLocale: "en_IN",
@@ -18,7 +18,7 @@ export const siteConfig = {
     path: "/opengraph-image",
     width: 1200,
     height: 630,
-    alt: "Rajat Debnath — AI Systems Engineer",
+    alt: "Rajat Debnath — AI Engineer",
   },
   verification: {
     google: "D6y4ykPvJwJPeroUiQJFpDWfwUmw15LjXE6jTwIn74s",

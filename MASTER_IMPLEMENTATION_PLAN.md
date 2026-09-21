@@ -15,7 +15,7 @@
 
 ### Professional positioning
 
-> **AI Systems & Infrastructure Engineer — building production AI systems for advanced manufacturing.**
+> **AI Engineer — building production AI systems for advanced manufacturing.**
 
 The website will function as:
 
@@ -32,7 +32,7 @@ The website will function as:
 ### Core subject areas
 
 - Industrial AI
-- AI systems engineering
+- AI engineering
 - AI infrastructure
 - MLOps
 - Edge AI
@@ -48,7 +48,7 @@ The website will function as:
 ### Homepage positioning
 
 - **H1:** Production AI Systems for Advanced Manufacturing
-- **Core message:** Rajat Debnath is an AI Systems & Infrastructure Engineer building production AI systems that turn industrial data into reliable predictions, decisions, automation, and operational intelligence.
+- **Core message:** Rajat Debnath is an AI Engineer building production AI systems that turn industrial data into reliable predictions, decisions, automation, and operational intelligence.
 - **Primary systems:** Prediction, optimization, anomaly detection, automation, and operational intelligence.
 - **Architecture narrative:** Industrial Data → Data Infrastructure → AI/ML → Infrastructure → Deployment → Monitoring → Operational Decision.
 - **Engineering principles:**

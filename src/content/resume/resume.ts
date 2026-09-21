@@ -4,13 +4,13 @@ import type { ResumeContent } from "@/types/resume";
 // supplied on 2026-09-17. Keep claims aligned with that source.
 export const resumeContent: ResumeContent = {
   about: [
-    "I am Rajat Debnath, an AI Systems Engineer based in Agartala, Tripura, India. I build the systems around artificial intelligence: data pipelines, integrations, automation, deployment workflows, and the infrastructure that turns operational data into decisions. My focus is not limited to training a model in a notebook. I am interested in the full path from raw data and business context to a dependable product that people can use.",
+    "I am Rajat Debnath, an AI Engineer based in Agartala, Tripura, India. I build the systems around artificial intelligence: data pipelines, integrations, automation, deployment workflows, and the infrastructure that turns operational data into decisions. My focus is not limited to training a model in a notebook. I am interested in the full path from raw data and business context to a dependable product that people can use.",
     "My engineering path began in software development. During a remote internship with Yupcha, I designed and built a reusable component library that was published as an npm package. That work took me through design, testing, versioning, deployment, and team integration. It gave me an early appreciation for shared infrastructure and maintainable systems instead of isolated features.",
     "I later joined Techno Electric & Engineering Co. Ltd. as a Graduate Engineer Trainee and worked on a smart meter project. My responsibilities centered on data handling, analysis, processing, and operational reporting. Working close to industrial data exposed the practical importance of data quality, reporting reliability, and analysis at scale. It also strengthened my interest in the systems behind predictive maintenance, anomaly detection, and operational intelligence.",
-    "I am currently an AI Systems Engineer with Kyma AI Innovations. My work includes production-oriented AI products, RAG pipelines, AI systems such as EduRAG, SaaS product development, and the infrastructure connecting prototypes to launch. Across these roles, the recurring theme has been building reliable paths between data, software, models, and users.",
+    "I am currently an AI Engineer with Kyma AI Innovations. My work includes production-oriented AI products, RAG pipelines, AI systems such as EduRAG, SaaS product development, and the infrastructure connecting prototypes to launch. Across these roles, the recurring theme has been building reliable paths between data, software, models, and users.",
     "My technical interests include machine learning, Python, system architecture, AI infrastructure, data pipelines, RAG systems, MLOps, automation, and industrial AI. I am completing a Bachelor of Technology in Electrical Engineering at the National Institute of Technology Agartala, with the program spanning 2022 to 2026. Alongside engineering work, I managed and published daily opportunity updates through the NSP community, helping maintain an active network of more than 3,500 students and alumni. I use this portfolio to document what I build, explain how systems work, and connect with teams working on meaningful data and automation problems.",
   ],
-  summary: "AI Systems Engineer building data pipelines, automation, and infrastructure that turn operational data into clear action.",
+  summary: "AI Engineer building data pipelines, automation, and infrastructure that turn operational data into clear action.",
   positioning: "Production-oriented AI systems, data infrastructure, and automation for operational environments.",
   capabilityFocus: [
     { area: "AI systems", description: "RAG pipelines, machine learning workflows, AI product integration, and production-oriented delivery." },
@@ -21,7 +21,7 @@ export const resumeContent: ResumeContent = {
   ],
   experience: [
     {
-      role: "AI Systems Engineer",
+      role: "AI Engineer",
       organization: "Kyma AI Innovations",
       location: "Agartala",
       startDate: "May 2026",

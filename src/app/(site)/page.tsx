@@ -16,20 +16,20 @@ import { createPageMetadata } from "@/lib/metadata/create-page-metadata";
 import { createWebPageStructuredData } from "@/lib/seo/structured-data";
 
 const skills = ["Machine Learning", "Python", "System Architecture", "RAG Pipelines", "Data Infrastructure", "Automation", "Industrial AI"] as const;
-const homepageDescription = "Rajat Debnath is an AI Systems Engineer building data pipelines, automation, and infrastructure that turn operational data into clear action.";
+const homepageDescription = "Rajat Debnath is an AI Engineer building data pipelines, automation, and infrastructure that turn operational data into clear action.";
 
-export const metadata: Metadata = createPageMetadata({ title: "AI Systems Engineer", description: homepageDescription, path: "/" });
+export const metadata: Metadata = createPageMetadata({ title: "AI Engineer", description: homepageDescription, path: "/" });
 
 export default function Home() {
   const articles = getPublishedArticles().slice(0, 2);
 
   return <>
-    <JsonLd data={createWebPageStructuredData({ name: "Rajat Debnath — AI Systems Engineer", description: homepageDescription, path: "/" })} />
+    <JsonLd data={createWebPageStructuredData({ name: "Rajat Debnath — AI Engineer", description: homepageDescription, path: "/" })} />
 
     <Section aria-labelledby="hero-title" className="overflow-hidden bg-[var(--dark)] text-white" spacing="wide">
       <Container className="grid items-center gap-12 lg:grid-cols-[minmax(0,1.25fr)_minmax(18rem,0.75fr)] lg:gap-16">
         <div>
-          <p className="font-mono text-sm font-semibold uppercase tracking-[0.18em] text-[var(--contrast)]">AI Systems Engineer · Agartala, India</p>
+          <p className="font-mono text-sm font-semibold uppercase tracking-[0.18em] text-[var(--contrast)]">AI Engineer · Agartala, India</p>
           <h1 className="mt-5 max-w-4xl text-5xl font-semibold leading-[0.98] tracking-[-0.05em] sm:text-7xl lg:text-8xl" id="hero-title">Rajat Debnath</h1>
           <p className="mt-6 text-2xl font-medium tracking-tight sm:text-3xl">Messy operational data to clear action.</p>
           <p className="mt-6 max-w-2xl text-lg leading-8 text-[var(--header-muted)]">I build AI systems, data pipelines, and automation that connect raw operational data to useful products and decisions.</p>

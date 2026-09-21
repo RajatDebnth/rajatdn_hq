@@ -11,6 +11,7 @@ import { getAbsoluteUrl } from "@/lib/metadata/create-page-metadata";
 import type { ArticleMetadata, RelatedContentReference } from "@/types/content";
 
 const directory = path.join(process.cwd(), "src", "content", "blog");
+const publishedDirectory = path.join(directory, "published");
 
 export type BlogArticle = { metadata: ArticleMetadata; body: string; headings: readonly { id: string; title: string; level: number }[] };
 
@@ -61,21 +62,24 @@ function extractHeadings(body: string) {
 }
 
 function parseArticle(file: string): BlogArticle {
-  const raw = readFileSync(path.join(directory, file), "utf8");
+  const raw = readFileSync(path.join(publishedDirectory, file), "utf8");
   const { data, content } = matter(raw);
   const fields = data as Record<string, unknown>;
   const title = stringField(fields, "title", file);
-  const slug = stringField(fields, "slug", file);
+  const filenameSlug = file.replace(/\.(md|mdx)$/, "");
+  const slug = optionalString(fields, "slug", file) ?? filenameSlug;
   if (!isValidSlug(slug)) fail(file, "slug must use lowercase letters, digits, and single hyphens");
+  if (slug !== filenameSlug) fail(file, "slug must match the article filename, or the slug field should be removed");
   const description = stringField(fields, "description", file);
   const date = dateField(fields, "date", file, true)!;
   const updatedDate = dateField(fields, "updatedDate", file);
   if (updatedDate && updatedDate < date) fail(file, "updatedDate cannot predate date");
-  const author = stringField(fields, "author", file);
+  const author = optionalString(fields, "author", file) ?? siteConfig.name;
   if (author !== siteConfig.name) fail(file, `author must match the verified site author (${siteConfig.name})`);
   const category = stringField(fields, "category", file);
   const tags = stringList(fields, "tags", file);
-  if (typeof fields.draft !== "boolean") fail(file, "draft must be an explicit boolean");
+  if (fields.draft === true) fail(file, "draft articles belong in src/content/blog/drafts, not published");
+  if (fields.draft !== undefined && typeof fields.draft !== "boolean") fail(file, "draft must be a boolean when provided");
   if (fields.featured !== undefined && typeof fields.featured !== "boolean") fail(file, "featured must be a boolean");
   const canonicalUrl = optionalString(fields, "canonicalUrl", file);
   if (canonicalUrl) {
@@ -105,20 +109,22 @@ function parseArticle(file: string): BlogArticle {
     });
   }
   const words = content.trim().split(/\s+/).filter(Boolean).length;
+  const calculatedReadingTime = Math.max(1, Math.ceil(words / 220));
+  if (calculatedReadingTime > 5) fail(file, `article is approximately ${calculatedReadingTime} minutes; published articles must be 5 minutes or less`);
   const readingTime = fields.readingTime;
   if (readingTime !== undefined && (typeof readingTime !== "number" || !Number.isInteger(readingTime) || readingTime < 1)) fail(file, "readingTime must be a positive whole number");
   const metadata: ArticleMetadata = {
     kind: "article", status: "completed", slug, title, description, topics: tags,
     date, publishedAt: date, updatedDate, updatedAt: updatedDate, author, category, tags,
-    featured: fields.featured === true, image, readingTime: (readingTime as number | undefined) ?? Math.max(1, Math.ceil(words / 220)),
+    featured: fields.featured === true, image, readingTime: (readingTime as number | undefined) ?? calculatedReadingTime,
     canonicalUrl, seoTitle: optionalString(fields, "seoTitle", file), seoDescription: optionalString(fields, "seoDescription", file), faq,
-    draft: fields.draft,
+    draft: false,
   };
   return { metadata, body: content, headings: extractHeadings(content) };
 }
 
 function readArticles(): BlogArticle[] {
-  const files = readdirSync(directory).filter((file) => /\.(md|mdx)$/.test(file));
+  const files = readdirSync(publishedDirectory).filter((file) => /\.(md|mdx)$/.test(file));
   const articles = files.map(parseArticle);
   const slugs = new Set<string>();
   for (const article of articles) {

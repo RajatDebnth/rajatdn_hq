@@ -1,74 +1,42 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
-import { PageHeader } from "@/components/content/page-header";
 import { KymaAiLink } from "@/components/content/kyma-ai-link";
 import { JsonLd } from "@/components/seo/json-ld";
 import { Container } from "@/components/ui/container";
-import { Section } from "@/components/ui/section";
 import { resumeContent } from "@/content/resume/resume";
 import { createPageMetadata } from "@/lib/metadata/create-page-metadata";
 import { createBreadcrumbStructuredData, createWebPageStructuredData } from "@/lib/seo/structured-data";
 
-const description = "Professional experience and education of Rajat Debnath across AI systems, industrial data, software engineering, and community work.";
-
-export const metadata: Metadata = createPageMetadata({
-  title: "Experiences",
-  description,
-  path: "/experiences",
-});
+const description = "Professional experience and education of Rajat Debnath across AI, industrial data, software engineering, and community work.";
+export const metadata: Metadata = createPageMetadata({ title: "Experiences", description, path: "/experiences" });
 
 export default function ExperiencesPage() {
-  return (
-    <>
-      <JsonLd data={createWebPageStructuredData({ name: "Experiences", description, path: "/experiences" })} />
-      <JsonLd data={createBreadcrumbStructuredData([{ name: "Home", path: "/" }, { name: "Experiences", path: "/experiences" }])} />
-      <Section spacing="wide">
-        <Container>
-          <PageHeader
-            breadcrumb={[{ href: "/", label: "Home" }, { label: "Experiences" }]}
-            eyebrow="Career and education"
-            title="Experience built across AI, industrial data, and software"
-            summary="A factual timeline based on my supplied professional resume, connecting software engineering foundations with current AI systems work."
-          />
-
-          <ol className="mt-14 border-t border-[var(--line)]">
-            {resumeContent.experience.map((entry) => (
-              <li className="grid gap-5 border-b border-[var(--line)] py-9 md:grid-cols-[12rem_minmax(0,1fr)] md:gap-10" key={`${entry.organization}-${entry.role}`}>
-                <div className="font-mono text-sm text-[var(--muted)]">
-                  <p>{entry.startDate} — {entry.endDate}</p>
-                  {entry.location ? <p className="mt-2">{entry.location}</p> : null}
-                </div>
-                <div>
-                  <h2 className="text-2xl font-semibold tracking-tight">{entry.role}</h2>
-                  <p className="mt-1 font-medium text-[var(--accent)]">{entry.organization === "Kyma AI Innovations" ? <KymaAiLink className="underline-offset-4 hover:underline" /> : entry.organization}</p>
-                  {entry.summary ? <p className="mt-4 max-w-[var(--article-width)] leading-7 text-[var(--muted)]">{entry.summary}</p> : null}
-                  {entry.highlights?.length ? <ul className="mt-5 max-w-[var(--article-width)] space-y-2 text-[var(--muted)]">{entry.highlights.map((highlight) => <li className="flex gap-3" key={highlight}><span aria-hidden="true" className="text-[var(--contrast)]">—</span><span>{highlight}</span></li>)}</ul> : null}
-                </div>
-              </li>
-            ))}
-          </ol>
-
-          <section aria-labelledby="education-title" className="py-14">
-            <p className="font-mono text-xs font-semibold uppercase tracking-[0.14em] text-[var(--accent)]">Education</p>
-            <h2 className="mt-3 text-3xl font-semibold tracking-tight" id="education-title">Academic background</h2>
-            <div className="mt-8 grid gap-4 md:grid-cols-2">
-              {resumeContent.education.map((entry) => (
-                <article className="border border-[var(--line)] bg-[var(--surface)] p-6" key={`${entry.institution}-${entry.credential}`}>
-                  <h3 className="text-xl font-semibold">{entry.credential}</h3>
-                  <p className="mt-2 text-[var(--accent)]">{entry.institution}</p>
-                  {entry.field ? <p className="mt-2 text-[var(--muted)]">{entry.field}</p> : null}
-                  <p className="mt-4 font-mono text-sm text-[var(--muted)]">{entry.startDate} — {entry.endDate}</p>
-                </article>
-              ))}
-            </div>
-          </section>
-
-          <section className="border-t border-[var(--line)] py-10 text-[var(--muted)]">
-            <p>Read my technical thinking and systems notes in <Link className="font-medium text-[var(--accent)] hover:underline" href="/blog">Blogs</Link>.</p>
-          </section>
-        </Container>
-      </Section>
-    </>
-  );
+  return <>
+    <JsonLd data={createWebPageStructuredData({ name: "Experiences", description, path: "/experiences" })} />
+    <JsonLd data={createBreadcrumbStructuredData([{ name: "Home", path: "/" }, { name: "Experiences", path: "/experiences" }])} />
+    <Container className="reading-width py-12 sm:py-14">
+      <header>
+        <h1 className="font-serif text-4xl font-semibold tracking-tight">Experiences</h1>
+        <p className="mt-3 text-[var(--muted)]">The work and education that shaped how I think about software, industrial data, and production AI.</p>
+      </header>
+      <section aria-labelledby="work-title" className="mt-10">
+        <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--muted)]" id="work-title">Work</h2>
+        <ol className="mt-3 divide-y divide-[var(--line)]">
+          {resumeContent.experience.map((entry) => <li className="py-6" key={`${entry.organization}-${entry.role}`}>
+            <h3 className="font-serif text-xl font-semibold">{entry.role}</h3>
+            <p className="mt-1 text-sm text-[var(--muted)]">{entry.organization === "Kyma AI Innovations" ? <KymaAiLink className="underline underline-offset-4" /> : entry.organization} · {entry.startDate} — {entry.endDate}</p>
+            {entry.location ? <p className="mt-1 text-sm text-[var(--muted)]">{entry.location}</p> : null}
+            {entry.summary ? <p className="mt-3 leading-7">{entry.summary}</p> : null}
+            {entry.highlights?.length ? <ul className="mt-3 list-disc space-y-1 pl-5 text-[var(--muted)]">{entry.highlights.map((highlight) => <li key={highlight}>{highlight}</li>)}</ul> : null}
+          </li>)}
+        </ol>
+      </section>
+      <section aria-labelledby="education-title" className="mt-10 border-t border-[var(--line)] pt-10">
+        <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--muted)]" id="education-title">Education</h2>
+        <div className="mt-3 divide-y divide-[var(--line)]">{resumeContent.education.map((entry) => <article className="py-5" key={`${entry.institution}-${entry.credential}`}><h3 className="font-serif text-lg font-semibold">{entry.credential}{entry.field ? `, ${entry.field}` : ""}</h3><p className="mt-1 text-sm text-[var(--muted)]">{entry.institution} · {entry.startDate} — {entry.endDate}</p></article>)}</div>
+      </section>
+      <p className="mt-10 border-t border-[var(--line)] pt-8 text-sm"><Link className="underline underline-offset-4" href="/blog">Read my writing →</Link></p>
+    </Container>
+  </>;
 }

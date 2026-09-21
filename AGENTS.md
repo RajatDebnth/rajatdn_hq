@@ -26,7 +26,7 @@ Build a professional authority and technical publishing platform for Rajat Debna
 - Preserve existing functionality and unrelated user changes.
 - Keep `src/app` focused on routing, layouts, route metadata, and route composition.
 - Keep reusable presentation in `src/components`; use `ui` for primitives, `layout` for site chrome, `content` for content presentation, and `seo` for rendered discovery primitives.
-- Keep author-controlled MDX in a matching subdirectory of `src/content`.
+- Keep author-controlled blog Markdown in `src/content/blog/published`; keep unfinished blog files in `src/content/blog/drafts`. Follow `src/content/blog/BLOG_STRUCTURE.md` and do not require code edits for routine publication.
 - Keep content discovery, parsing, validation, and relationship resolution in `src/lib/content`; route files must not read the filesystem directly.
 - Keep metadata construction in `src/lib/metadata` and structured-data construction in `src/lib/seo`.
 - Keep site-wide facts and navigation under `src/config`, and shared contracts under `src/types`.

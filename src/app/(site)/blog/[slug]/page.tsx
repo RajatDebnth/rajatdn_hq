@@ -5,13 +5,8 @@ import { notFound } from "next/navigation";
 import { MDXRemote } from "next-mdx-remote/rsc";
 
 import { blogMdxComponents } from "@/components/blog/mdx-components";
-import { TableOfContents } from "@/components/blog/table-of-contents";
-import { PageHeader } from "@/components/content/page-header";
 import { JsonLd } from "@/components/seo/json-ld";
-import { Badge } from "@/components/ui/badge";
 import { Container } from "@/components/ui/container";
-import { Section } from "@/components/ui/section";
-import { TagList } from "@/components/ui/tag-list";
 import { getAdjacentArticles, getArticleCanonicalUrl, getPublishedArticleBySlug, getPublishedArticles, getRelatedArticles } from "@/lib/content/blog";
 import { rejectUnsafeMdx } from "@/lib/content/mdx-security";
 import { createPageMetadata } from "@/lib/metadata/create-page-metadata";
@@ -27,13 +22,7 @@ export async function generateMetadata({ params }: BlogPageProps): Promise<Metad
   const data = article.metadata;
   const metadata = createPageMetadata({ title: data.seoTitle ?? data.title, description: data.seoDescription ?? data.description, path: `/blog/${data.slug}` });
   const canonical = getArticleCanonicalUrl(article);
-  return {
-    ...metadata,
-    alternates: { canonical },
-    openGraph: { ...metadata.openGraph, type: "article", url: canonical, publishedTime: data.date, modifiedTime: data.updatedDate ?? data.date, authors: [data.author], tags: [...data.tags],
-      ...(data.image ? { images: [{ url: data.image.src, width: data.image.width, height: data.image.height, alt: data.image.alt }] } : {}) },
-    twitter: { ...metadata.twitter, ...(data.image ? { images: [data.image.src] } : {}) },
-  };
+  return { ...metadata, alternates: { canonical }, openGraph: { ...metadata.openGraph, type: "article", url: canonical, publishedTime: data.date, modifiedTime: data.updatedDate ?? data.date, authors: [data.author], tags: [...data.tags], ...(data.image ? { images: [{ url: data.image.src, width: data.image.width, height: data.image.height, alt: data.image.alt }] } : {}) }, twitter: { ...metadata.twitter, ...(data.image ? { images: [data.image.src] } : {}) } };
 }
 
 export default async function ArticlePage({ params }: BlogPageProps) {
@@ -41,25 +30,29 @@ export default async function ArticlePage({ params }: BlogPageProps) {
   if (!article) notFound();
   const data = article.metadata;
   const path = `/blog/${data.slug}` as const;
+  const date = new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" }).format(new Date(`${data.date}T00:00:00Z`));
+  const updatedDate = data.updatedDate ? new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" }).format(new Date(`${data.updatedDate}T00:00:00Z`)) : null;
   const adjacent = getAdjacentArticles(data.slug);
   const related = getRelatedArticles(article);
   return <>
     <JsonLd data={createWebPageStructuredData({ name: data.title, description: data.description, path })} />
     <JsonLd data={createArticleStructuredData({ name: data.title, description: data.description, path, publishedAt: data.date, updatedAt: data.updatedDate, topics: data.tags })} />
     <JsonLd data={createBreadcrumbStructuredData([{ name: "Home", path: "/" }, { name: "Blog", path: "/blog" }, { name: data.title, path }])} />
-    <article><Section spacing="wide"><Container>
-      <PageHeader breadcrumb={[{ href: "/", label: "Home" }, { href: "/blog", label: "Blog" }, { label: data.title }]} eyebrow={data.category} title={data.title} summary={data.description} />
-      <div className="mt-7 flex flex-wrap items-center gap-4 font-mono text-xs text-[var(--muted)]"><span>By {data.author}</span><time dateTime={data.date}>{data.date}</time>{data.updatedDate ? <span>Updated <time dateTime={data.updatedDate}>{data.updatedDate}</time></span> : null}<span>{data.readingTime} min read</span>{data.featured ? <Badge>Featured</Badge> : null}</div>
-      {data.image ? <figure className="mt-10 max-w-4xl"><Image alt={data.image.alt} className="h-auto w-full border border-[var(--line)]" fetchPriority="high" height={data.image.height} sizes="(max-width: 896px) 100vw, 896px" src={data.image.src} width={data.image.width} /><figcaption className="mt-3 text-sm text-[var(--muted)]">{data.image.alt}</figcaption></figure> : null}
-    </Container></Section>
-    <Container className="grid gap-10 border-t border-[var(--line)] py-12 lg:grid-cols-[minmax(0,var(--article-width))_16rem] lg:gap-16">
-      <div className="min-w-0"><div className="article-body"><MDXRemote source={article.body} components={blogMdxComponents} options={{ blockJS: true, blockDangerousJS: true, mdxOptions: { useDynamicImport: false, remarkPlugins: [rejectUnsafeMdx] } }} /></div>
-        {data.faq?.length ? <section aria-labelledby="faq-title" className="mt-12 border-t border-[var(--line)] pt-8"><h2 className="text-2xl font-semibold" id="faq-title">Frequently asked questions</h2><dl className="mt-6 space-y-6">{data.faq.map((item) => <div key={item.question}><dt className="font-semibold">{item.question}</dt><dd className="mt-2 leading-7 text-[var(--muted)]">{item.answer}</dd></div>)}</dl></section> : null}
-        <div className="mt-10"><TagList label="Article tags" tags={data.tags} /></div>
-        {related.length ? <aside className="mt-12 border-t border-[var(--line)] pt-8" aria-labelledby="related-articles-title"><h2 className="text-xl font-semibold" id="related-articles-title">Related articles</h2><ul className="mt-5 space-y-3">{related.map(({ metadata }) => <li key={metadata.slug}><Link className="text-[var(--accent)] hover:underline" href={`/blog/${metadata.slug}`}>{metadata.title}</Link></li>)}</ul></aside> : null}
-        {(adjacent.previous || adjacent.next) ? <nav aria-label="Article navigation" className="mt-12 grid gap-6 border-t border-[var(--line)] pt-8 sm:grid-cols-2">{adjacent.previous ? <Link className="text-[var(--accent)] hover:underline" href={`/blog/${adjacent.previous.metadata.slug}`}>← Newer: {adjacent.previous.metadata.title}</Link> : <span />}{adjacent.next ? <Link className="text-[var(--accent)] hover:underline" href={`/blog/${adjacent.next.metadata.slug}`}>Older: {adjacent.next.metadata.title} →</Link> : null}</nav> : null}
-      </div>
-      <aside className="lg:sticky lg:top-24 lg:self-start"><TableOfContents headings={article.headings} /></aside>
-    </Container></article>
+    <article>
+      <Container className="reading-width py-12 sm:py-14">
+        <header>
+          <h1 className="font-serif text-4xl font-semibold leading-tight tracking-tight sm:text-5xl">{data.title}</h1>
+          <div className="mt-4 flex flex-wrap items-center gap-2 text-sm text-[var(--muted)]"><span>By {data.author}</span><span aria-hidden="true">·</span><time dateTime={data.date}>{date}</time>{updatedDate ? <><span aria-hidden="true">·</span><span>Updated <time dateTime={data.updatedDate}>{updatedDate}</time></span></> : null}<span aria-hidden="true">·</span><span className="tag">{data.category}</span><span aria-hidden="true">·</span><span>{data.readingTime} min read</span></div>
+          <p className="mt-5 text-lg leading-8 text-[var(--muted)]">{data.description}</p>
+          {data.tags.length ? <ul aria-label="Article topics" className="mt-4 flex flex-wrap gap-x-3 gap-y-1 text-sm text-[var(--muted)]">{data.tags.map((tag) => <li key={tag}>#{tag.toLowerCase().replace(/\s+/g, "-")}</li>)}</ul> : null}
+        </header>
+        {data.image ? <figure className="mt-8"><Image alt={data.image.alt} className="h-auto w-full border border-[var(--line)]" fetchPriority="high" height={data.image.height} sizes="(max-width: 672px) 100vw, 672px" src={data.image.src} width={data.image.width} /><figcaption className="mt-2 text-sm text-[var(--muted)]">{data.image.alt}</figcaption></figure> : null}
+        <div className="article-body mt-10"><MDXRemote source={article.body} components={blogMdxComponents} options={{ blockJS: true, blockDangerousJS: true, mdxOptions: { useDynamicImport: false, remarkPlugins: [rejectUnsafeMdx] } }} /></div>
+        {data.faq?.length ? <section aria-labelledby="faq-title" className="mt-12 border-t border-[var(--line)] pt-8"><h2 className="font-serif text-2xl font-semibold" id="faq-title">Questions and answers</h2><dl className="mt-5 space-y-6">{data.faq.map((item) => <div key={item.question}><dt className="font-semibold">{item.question}</dt><dd className="mt-1 text-[var(--muted)]">{item.answer}</dd></div>)}</dl></section> : null}
+        {related.length ? <aside aria-labelledby="related-title" className="mt-12 border-t border-[var(--line)] pt-8"><h2 className="font-serif text-xl font-semibold" id="related-title">Related writing</h2><ul className="mt-4 space-y-2">{related.map(({ metadata }) => <li key={metadata.slug}><Link className="underline underline-offset-4" href={`/blog/${metadata.slug}`}>{metadata.title}</Link></li>)}</ul></aside> : null}
+        {(adjacent.previous || adjacent.next) ? <nav aria-label="Article navigation" className="mt-10 grid gap-4 border-t border-[var(--line)] pt-8 text-sm sm:grid-cols-2">{adjacent.previous ? <Link className="underline underline-offset-4" href={`/blog/${adjacent.previous.metadata.slug}`}>← Newer: {adjacent.previous.metadata.title}</Link> : <span />}{adjacent.next ? <Link className="underline underline-offset-4 sm:text-right" href={`/blog/${adjacent.next.metadata.slug}`}>Older: {adjacent.next.metadata.title} →</Link> : null}</nav> : null}
+        <p className="mt-10 border-t border-[var(--line)] pt-8 text-sm"><Link className="underline underline-offset-4" href="/blog">← Back to all writing</Link></p>
+      </Container>
+    </article>
   </>;
 }

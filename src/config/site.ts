@@ -27,7 +27,7 @@ export const siteConfig = {
     formEndpoint: process.env.CONTACT_FORM_ENDPOINT || null,
     email: process.env.CONTACT_EMAIL || null,
     linkedInUrl: process.env.CONTACT_LINKEDIN_URL || "https://www.linkedin.com/in/rajat-debnath/",
-    gitHubUrl: process.env.CONTACT_GITHUB_URL || "https://github.com/Rajat22UEE",
+    gitHubUrl: process.env.CONTACT_GITHUB_URL || "https://github.com/RajatDebnth",
   },
   topics: [
     "Industrial AI",

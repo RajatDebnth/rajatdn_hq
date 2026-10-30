@@ -89,27 +89,6 @@ export function createArticleStructuredData({
   };
 }
 
-export function createProjectStructuredData({
-  description,
-  name,
-  path,
-  topics = [],
-}: StructuredDataPageInput & { topics?: readonly string[] }): JsonLdValue {
-  const url = getAbsoluteUrl(path);
-
-  return {
-    "@context": schemaContext,
-    "@type": "CreativeWork",
-    "@id": `${url}#project`,
-    name,
-    description,
-    url,
-    mainEntityOfPage: { "@id": `${url}#webpage` },
-    author: { "@id": personId },
-    keywords: topics,
-  };
-}
-
 // Use only on a page that describes a genuine professional service offering.
 export function createProfessionalServiceStructuredData({
   areaServed,

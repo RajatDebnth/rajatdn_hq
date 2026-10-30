@@ -10,7 +10,7 @@ export const resumeContent: ResumeContent = {
     "I am currently an AI Engineer with Kyma AI Innovations. My work includes production-oriented AI products, RAG pipelines, AI systems such as EduRAG, SaaS product development, and the infrastructure connecting prototypes to launch. Across these roles, the recurring theme has been building reliable paths between data, software, models, and users.",
     "My technical interests include machine learning, Python, system architecture, AI infrastructure, data pipelines, RAG systems, MLOps, automation, and industrial AI. I am completing a Bachelor of Technology in Electrical Engineering at the National Institute of Technology Agartala, with the program spanning 2022 to 2026. Alongside engineering work, I managed and published daily opportunity updates through the NSP community, helping maintain an active network of more than 3,500 students and alumni. I use this portfolio to document what I build, explain how systems work, and connect with teams working on meaningful data and automation problems.",
   ],
-  summary: "AI Engineer building data pipelines, automation, and infrastructure that turn operational data into clear action.",
+  summary: "AI Engineer building AI products, software, websites and automations that turn operational data into clear action.",
   positioning: "Production-oriented AI systems, data infrastructure, and automation for operational environments.",
   capabilityFocus: [
     { area: "AI systems", description: "RAG pipelines, machine learning workflows, AI product integration, and production-oriented delivery." },

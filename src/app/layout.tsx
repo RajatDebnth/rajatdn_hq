@@ -72,16 +72,13 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  colorScheme: "light dark",
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: siteConfig.themeColors.light },
-    { media: "(prefers-color-scheme: dark)", color: siteConfig.themeColors.dark },
-  ],
+  colorScheme: "light",
+  themeColor: siteConfig.themeColors.light,
 };
 
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
   return (
-    <html lang={siteConfig.locale}>
+    <html className="light" lang={siteConfig.locale}>
       <body className="min-h-screen antialiased">
         <JsonLd data={createSiteStructuredData()} />
         <a

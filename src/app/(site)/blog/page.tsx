@@ -18,9 +18,9 @@ export default function BlogPage() {
   return <>
     <JsonLd data={createWebPageStructuredData({ name: "Blogs", description, path: "/blog" })} />
     <JsonLd data={createBreadcrumbStructuredData([{ name: "Home", path: "/" }, { name: "Blogs", path: "/blog" }])} />
-    <Container className="reading-width py-12 sm:py-14">
+    <Container className="reading-width py-12 sm:py-16">
       <header>
-        <h1 className="font-serif text-4xl font-semibold tracking-tight">Blogs</h1>
+        <h1 className="text-3xl sm:text-4xl sm:text-[2.25rem] font-bold tracking-tight text-[var(--foreground)]">Blogs</h1>
         <p className="mt-3 text-[var(--muted)]">Five-minute technical breakdowns, behind-the-scenes engineering notes, and practical AI case studies focused on what businesses need to understand and apply.</p>
         {categories.length ? <div aria-label="Article categories" className="mt-6 flex flex-wrap gap-2">{categories.map((category) => <span className="tag text-sm text-[var(--muted)]" key={category}>{category}</span>)}</div> : null}
       </header>

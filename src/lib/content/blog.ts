@@ -6,9 +6,14 @@ import path from "node:path";
 import matter from "gray-matter";
 
 import { siteConfig } from "@/config/site";
-import { isValidSlug } from "@/lib/content/projects";
 import { getAbsoluteUrl } from "@/lib/metadata/create-page-metadata";
 import type { ArticleMetadata, RelatedContentReference } from "@/types/content";
+
+const slugPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
+export function isValidSlug(value: string) {
+  return slugPattern.test(value);
+}
 
 const directory = path.join(process.cwd(), "src", "content", "blog");
 const publishedDirectory = path.join(directory, "published");

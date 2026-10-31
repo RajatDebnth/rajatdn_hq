@@ -6,6 +6,7 @@ import { getPublishedArticles } from "@/lib/content/blog";
 export default function sitemap(): MetadataRoute.Sitemap {
   const routes = [
     { path: "/", priority: 1 },
+    { path: "/works", priority: 0.9 },
     { path: "/blog", priority: 0.8 },
     { path: "/experiences", priority: 0.9 },
   ] as const;

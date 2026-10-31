@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ArticleCard } from "@/components/cards/article-card";
 import { JsonLd } from "@/components/seo/json-ld";
 import { Container } from "@/components/ui/container";
+import { BriefcaseIcon, GitHubIcon, LinkedInIcon } from "@/components/ui/icons";
 import { siteConfig } from "@/config/site";
 import { getPublishedArticles } from "@/lib/content/blog";
 import { createPageMetadata } from "@/lib/metadata/create-page-metadata";
@@ -39,10 +40,38 @@ export default function Home() {
             I write about production AI, data infrastructure, automation, and the engineering lessons I am learning along the way.
           </p>
         </div>
-        <div className="mt-8 flex flex-wrap gap-x-5 gap-y-2 text-sm text-[var(--muted)]">
-          <a className="underline-offset-4 hover:text-[var(--foreground)] hover:underline" href={siteConfig.contact.linkedInUrl} rel="noopener noreferrer" target="_blank">LinkedIn<span className="sr-only"> (opens in a new tab)</span></a>
-          <a className="underline-offset-4 hover:text-[var(--foreground)] hover:underline" href={siteConfig.contact.gitHubUrl} rel="noopener noreferrer" target="_blank">GitHub<span className="sr-only"> (opens in a new tab)</span></a>
-          <Link className="underline-offset-4 hover:text-[var(--foreground)] hover:underline" href="/experiences">Experiences</Link>
+        <div className="mt-8 flex items-center gap-3">
+          <a
+            aria-label="LinkedIn profile (opens in a new tab)"
+            className="inline-flex size-9 items-center justify-center rounded-full border border-[var(--line)] bg-[var(--surface)] text-[var(--muted)] transition-all hover:border-[var(--line-strong)] hover:bg-[var(--surface-subtle)] hover:text-[var(--foreground)]"
+            href={siteConfig.contact.linkedInUrl}
+            rel="noopener noreferrer"
+            target="_blank"
+            title="LinkedIn"
+          >
+            <LinkedInIcon className="size-4" />
+            <span className="sr-only">LinkedIn (opens in a new tab)</span>
+          </a>
+          <a
+            aria-label="GitHub profile (opens in a new tab)"
+            className="inline-flex size-9 items-center justify-center rounded-full border border-[var(--line)] bg-[var(--surface)] text-[var(--muted)] transition-all hover:border-[var(--line-strong)] hover:bg-[var(--surface-subtle)] hover:text-[var(--foreground)]"
+            href={siteConfig.contact.gitHubUrl}
+            rel="noopener noreferrer"
+            target="_blank"
+            title="GitHub"
+          >
+            <GitHubIcon className="size-4" />
+            <span className="sr-only">GitHub (opens in a new tab)</span>
+          </a>
+          <Link
+            aria-label="Experiences page"
+            className="inline-flex size-9 items-center justify-center rounded-full border border-[var(--line)] bg-[var(--surface)] text-[var(--muted)] transition-all hover:border-[var(--line-strong)] hover:bg-[var(--surface-subtle)] hover:text-[var(--foreground)]"
+            href="/experiences"
+            title="Experiences"
+          >
+            <BriefcaseIcon className="size-4" />
+            <span className="sr-only">Experiences</span>
+          </Link>
         </div>
       </section>
       <section aria-labelledby="writing-title" className="mt-14 border-t border-[var(--line)] pt-10">

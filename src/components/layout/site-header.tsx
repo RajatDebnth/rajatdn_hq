@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { SiteNav } from "@/components/layout/site-nav";
 import { siteConfig } from "@/config/site";
 
 export function SiteHeader() {
@@ -12,20 +13,7 @@ export function SiteHeader() {
         >
           {siteConfig.name}
         </Link>
-        <nav aria-label="Primary navigation">
-          <ul className="flex items-center gap-5 text-sm font-medium text-[var(--muted)] sm:gap-7">
-            <li>
-              <Link className="hover:text-[var(--foreground)] transition-colors" href="/blog">
-                Blogs
-              </Link>
-            </li>
-            <li>
-              <Link className="hover:text-[var(--foreground)] transition-colors" href="/experiences">
-                Experiences
-              </Link>
-            </li>
-          </ul>
-        </nav>
+        <SiteNav />
       </div>
     </header>
   );

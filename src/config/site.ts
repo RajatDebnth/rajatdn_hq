@@ -25,7 +25,9 @@ export const siteConfig = {
   },
   contact: {
     formEndpoint: process.env.CONTACT_FORM_ENDPOINT || null,
-    email: process.env.CONTACT_EMAIL || null,
+    email: process.env.CONTACT_EMAIL || "rajatdn.hq@gmail.com",
+    phone: "6909802009",
+    phoneFormatted: "+91 6909802009",
     linkedInUrl: process.env.CONTACT_LINKEDIN_URL || "https://www.linkedin.com/in/rajat-debnath/",
     gitHubUrl: process.env.CONTACT_GITHUB_URL || "https://github.com/RajatDebnth",
   },

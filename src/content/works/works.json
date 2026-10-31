@@ -1,0 +1,357 @@
+[
+  {
+    "id": "landingvault",
+    "title": "LandingVault — Design Reference Solution",
+    "category": "Solutions",
+    "subtitle": "Curated Reference Solution",
+    "link": "https://landingvault.vercel.app/",
+    "linkType": "demo",
+    "image": "",
+    "previewType": "landingvault",
+    "popup": {
+      "oneLiner": "LandingVault is a curated web platform and showcase solution aggregating high-converting landing page designs and reusable UI inspiration for others to reference.",
+      "problem": "Developers and agency founders waste hours searching across disparate sources or building landing page layouts from scratch without proven conversion patterns. LandingVault provides a centralized reference solution.",
+      "workflow": [
+        {
+          "step": "1",
+          "title": "Browse & Filter",
+          "desc": "Explore a categorized reference gallery of hero sections, pricing tables, and feature grids."
+        },
+        {
+          "step": "2",
+          "title": "Instant Inspect",
+          "desc": "View key layout breakdowns, component references, and responsive preview structures."
+        },
+        {
+          "step": "3",
+          "title": "Reference & Build",
+          "desc": "Pull battle-tested conversion patterns and UI ideas directly into your code pipeline."
+        }
+      ],
+      "techStack": [
+        "Next.js (App Router)",
+        "TypeScript",
+        "Tailwind CSS",
+        "Lucide Icons",
+        "Vercel Edge"
+      ],
+      "highlights": [
+        "Centralized reference solution for modern SaaS landing pages and component patterns",
+        "Zero-login instant access to high-resolution conversion UI structures and layouts",
+        "Edge Network deployment delivering sub-second page loads for frictionless reference"
+      ],
+      "ctas": [
+        {
+          "label": "Live Platform",
+          "url": "https://landingvault.vercel.app/",
+          "type": "demo"
+        }
+      ]
+    }
+  },
+  {
+    "id": "pencil-club",
+    "title": "Pencil Club — E-Commerce Template",
+    "category": "Design",
+    "subtitle": "Landing Page Template",
+    "link": "https://landingvault.vercel.app/landing-pages/Ecommerce/Pencil/index.html",
+    "linkType": "demo",
+    "image": "",
+    "previewType": "pencil-club",
+    "popup": {
+      "oneLiner": "Pencil Club is a minimalist, concept-driven e-commerce landing page template crafted for an analog stationery brand.",
+      "problem": "Standard e-commerce templates are often sterile, heavily corporate, or cluttered with algorithmic banners. This template provides a tactile, analog-focused storefront layout designed to evoke mindfulness and simplicity.",
+      "workflow": [
+        {
+          "step": "1",
+          "title": "Hero Hook",
+          "desc": "Bold brutalist typography setting a mindful, nostalgic tone ('No battery. Just ideas.')."
+        },
+        {
+          "step": "2",
+          "title": "Product Showcase",
+          "desc": "Curated trio of pencils ('The Main Characters') with transparent pricing and quick add-to-bag."
+        },
+        {
+          "step": "3",
+          "title": "Ritual Flow",
+          "desc": "Interactive dynamic marquee text tickers and a 4-step workflow from clearing space to sharpening up."
+        }
+      ],
+      "techStack": [
+        "HTML5",
+        "CSS3 Grid / Flexbox",
+        "Vanilla JavaScript",
+        "Custom Marquee",
+        "Vercel Edge"
+      ],
+      "highlights": [
+        "Landing page template with strong thematic consistency reinforcing 'big paper energy'",
+        "High-conversion vertical storytelling layout guiding visitors effortlessly through the storefront",
+        "Zero-dependency lightweight front-end structure hosted on Vercel's high-speed edge network"
+      ],
+      "ctas": [
+        {
+          "label": "Live Demo",
+          "url": "https://landingvault.vercel.app/landing-pages/Ecommerce/Pencil/index.html",
+          "type": "demo"
+        }
+      ]
+    }
+  },
+  {
+    "id": "forma",
+    "title": "Forma — Asset Library Template",
+    "category": "Design",
+    "subtitle": "Landing Page Template",
+    "link": "https://landingvault.vercel.app/landing-pages/Business/Forma/index.html",
+    "linkType": "demo",
+    "image": "",
+    "previewType": "forma",
+    "popup": {
+      "oneLiner": "Forma is a design-forward landing page template created for curated digital asset libraries, 3D render archives, and creative media platforms.",
+      "problem": "Creators and designers spend too much time hunting across generic stock libraries. This landing page template provides a tactile, moodboard-inspired visual showcase for creative media.",
+      "workflow": [
+        {
+          "step": "1",
+          "title": "Visual Marquee",
+          "desc": "Continuous multi-row scrolling gallery showcasing 2,400+ weekly added editorial assets."
+        },
+        {
+          "step": "2",
+          "title": "Category Filters",
+          "desc": "Instant filtering layout across Editorial, 3D & Render, Textures, Abstract, and Photography."
+        },
+        {
+          "step": "3",
+          "title": "Curated Worlds",
+          "desc": "Thematic mood collections (Surreal 3D, Quiet Minimal) with independent global artist spotlights."
+        }
+      ],
+      "techStack": [
+        "HTML5 / CSS3",
+        "Marquee Animations",
+        "CSS Grid & Flexbox",
+        "Unsplash CDN",
+        "Vercel Edge"
+      ],
+      "highlights": [
+        "Landing page template designed specifically around modern artistic and tactile visual moods",
+        "Immersive continuous marquee elements and clean grid structure for frictionless inspiration",
+        "High-resolution CDN image delivery hosted on Vercel's edge network for sub-second loading"
+      ],
+      "ctas": [
+        {
+          "label": "Live Demo",
+          "url": "https://landingvault.vercel.app/landing-pages/Business/Forma/index.html",
+          "type": "demo"
+        }
+      ]
+    }
+  },
+  {
+    "id": "goodfit",
+    "title": "Goodfit — Talent Matching Template",
+    "category": "Design",
+    "subtitle": "Landing Page Template",
+    "link": "https://landingvault.vercel.app/landing-pages/Portfolio/GoodFit/index.html",
+    "linkType": "demo",
+    "image": "",
+    "previewType": "goodfit",
+    "popup": {
+      "oneLiner": "Goodfit is a human-centric landing page template designed for talent acquisition platforms, creative recruiting agencies, and freelancer networks.",
+      "problem": "Standard hiring platforms drown visitors in resume chaos and impersonal portal designs. This landing page template replaces sterile job board aesthetics with warm, human-first typography and candidate alignment cards.",
+      "workflow": [
+        {
+          "step": "1",
+          "title": "Dual Pathways",
+          "desc": "Tailored landing sections for growing teams ('Build a team that clicks') and talent ('Do work that gets you')."
+        },
+        {
+          "step": "2",
+          "title": "3-Step Matching Flow",
+          "desc": "Structured onboarding narrative from defining briefs ('Get Clear') to vetted match previews ('Meet Your Match')."
+        },
+        {
+          "step": "3",
+          "title": "Interactive Candidate Cards",
+          "desc": "Mock workspace UI displaying live talent compatibility badges (e.g. 98% Match)."
+        }
+      ],
+      "techStack": [
+        "HTML5",
+        "Modular CSS3",
+        "Interactive UI States",
+        "Card Components",
+        "Vercel Edge"
+      ],
+      "highlights": [
+        "Landing page template emphasizing human-first alignment, working preferences, and communication style",
+        "Minimalist editorial typography with professional card components and accordion FAQ patterns",
+        "Lightning-fast static edge delivery ensuring instant interactive preview loading"
+      ],
+      "ctas": [
+        {
+          "label": "Live Demo",
+          "url": "https://landingvault.vercel.app/landing-pages/Portfolio/GoodFit/index.html",
+          "type": "demo"
+        }
+      ]
+    }
+  },
+  {
+    "id": "signal-social",
+    "title": "Signal Social — Agency Template",
+    "category": "Design",
+    "subtitle": "Landing Page Template",
+    "link": "https://landingvault.vercel.app/landing-pages/Business/Signal_Social/index.html",
+    "linkType": "demo",
+    "image": "",
+    "previewType": "signal-social",
+    "popup": {
+      "oneLiner": "Signal Social is a boutique agency landing page template designed for social media strategists, content creators, and growth agencies.",
+      "problem": "Marketing agencies struggle to stand out in crowded feeds using generic corporate templates. This landing page template combines thumb-stopping creative layouts with high-converting consultation flows.",
+      "workflow": [
+        {
+          "step": "1",
+          "title": "Hero Pitch",
+          "desc": "Bold typography hook ('Impossible to scroll past') with a zero-friction 30-min discovery call CTA."
+        },
+        {
+          "step": "2",
+          "title": "Triple Pillars",
+          "desc": "Clear three-part service presentation: brand identity creation, campaigns, and active community engagement."
+        },
+        {
+          "step": "3",
+          "title": "Social Proof Grid",
+          "desc": "Senior strategist team cards paired with verifiable metric callouts (3.4x ROAS, +186% growth)."
+        }
+      ],
+      "techStack": [
+        "HTML5",
+        "Responsive CSS3 Grid",
+        "Unsplash CDN",
+        "Micro-Interactions",
+        "Vercel Edge"
+      ],
+      "highlights": [
+        "Landing page template engineered specifically for agency brand positioning and client lead generation",
+        "People-before-platforms narrative guiding visitors from creative proof to an introductory consultation",
+        "Optimized responsive layouts with edge-hosted high-resolution media and smooth transitions"
+      ],
+      "ctas": [
+        {
+          "label": "Live Demo",
+          "url": "https://landingvault.vercel.app/landing-pages/Business/Signal_Social/index.html",
+          "type": "demo"
+        }
+      ]
+    }
+  },
+  {
+    "id": "tonerd",
+    "title": "ToneRD — Micro-Animation Utility",
+    "category": "Solutions",
+    "subtitle": "UI Micro-Animation Utility",
+    "link": "https://tone-rd.vercel.app/",
+    "linkType": "demo",
+    "image": "",
+    "previewType": "tonerd",
+    "popup": {
+      "oneLiner": "ToneRD is a developer tool and UI component utility that allows front-end engineers to add instant micro-animations to UI buttons by swapping or adding Tailwind CSS classes.",
+      "problem": "Adding custom keyframe animations and interactive micro-feedback to UI buttons usually requires writing boilerplate CSS or configuring heavy animation libraries. ToneRD simplifies animations into single, plug-and-play Tailwind utility classes.",
+      "workflow": [
+        {
+          "step": "1",
+          "title": "NPM Installation",
+          "desc": "Developers install the lightweight package into their project via npm install tonerd."
+        },
+        {
+          "step": "2",
+          "title": "Utility Swap",
+          "desc": "Buttons are animated instantly by appending or swapping ToneRD animation classes directly in className."
+        },
+        {
+          "step": "3",
+          "title": "Interactive Playground",
+          "desc": "The web app provides live component previews and copy-paste code snippets for quick integration."
+        }
+      ],
+      "techStack": [
+        "Next.js (React)",
+        "Tailwind CSS",
+        "Keyframe Animations",
+        "NPM Distribution",
+        "Vercel Edge"
+      ],
+      "highlights": [
+        "Zero-friction DX eliminating complex JavaScript animation hooks in favor of class-driven styling",
+        "Tailwind native integration slotting into existing design systems without breaking layout structures",
+        "Live interactive playground web app for testing and one-click code snippet copying"
+      ],
+      "ctas": [
+        {
+          "label": "Live Web App",
+          "url": "https://tone-rd.vercel.app/",
+          "type": "demo"
+        },
+        {
+          "label": "NPM Package",
+          "url": "https://www.npmjs.com/package/tonerd",
+          "type": "website"
+        }
+      ]
+    }
+  },
+  {
+    "id": "taskflow",
+    "title": "TaskFlow — Workflow Productivity App",
+    "category": "Solutions",
+    "subtitle": "Productivity & Task Management",
+    "link": "https://task-flow-weld-two.vercel.app/",
+    "linkType": "demo",
+    "image": "",
+    "previewType": "taskflow",
+    "popup": {
+      "oneLiner": "TaskFlow is a modern productivity and project management application designed to organize tasks, streamline workflows, and track daily progress.",
+      "problem": "Managing project milestones and to-do lists across scattered notes and cluttered spreadsheets creates friction. TaskFlow provides a clean workspace to prioritize, categorize, and monitor tasks in real time.",
+      "workflow": [
+        {
+          "step": "1",
+          "title": "Task Management",
+          "desc": "Quickly create, edit, prioritize, and check off items on your active to-do lists."
+        },
+        {
+          "step": "2",
+          "title": "Status Tracking",
+          "desc": "Visual indicators and progress states allow real-time monitoring of pending, in-progress, and completed tasks."
+        },
+        {
+          "step": "3",
+          "title": "Streamlined UI",
+          "desc": "A minimal, distraction-free interface built for rapid task entry and review."
+        }
+      ],
+      "techStack": [
+        "React",
+        "JavaScript",
+        "Tailwind CSS",
+        "Responsive UI",
+        "Vercel Edge"
+      ],
+      "highlights": [
+        "Zero-friction productivity focusing purely on core execution without heavy enterprise bloat",
+        "Fully responsive and accessible layout designed smoothly for desktop and mobile devices",
+        "Edge-deployed static delivery on Vercel delivering instant page loads"
+      ],
+      "ctas": [
+        {
+          "label": "Live Web App",
+          "url": "https://task-flow-weld-two.vercel.app/",
+          "type": "demo"
+        }
+      ]
+    }
+  }
+]

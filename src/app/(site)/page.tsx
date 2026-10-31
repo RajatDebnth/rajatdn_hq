@@ -20,10 +20,10 @@ export default function Home() {
     <JsonLd data={createWebPageStructuredData({ name: "Rajat Debnath — AI Engineer", description: homepageDescription, path: "/" })} />
     <Container className="reading-width py-12 sm:py-16">
       <section aria-labelledby="intro-title">
-        <h1 className="text-3xl sm:text-4xl sm:text-[2.25rem] font-bold tracking-tight text-[var(--foreground)]" id="intro-title">
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[var(--foreground)]" id="intro-title">
           Hi, myself Rajat 👋
         </h1>
-        <div className="mt-6 space-y-5 text-[1.05rem] leading-[1.6]">
+        <div className="mt-5 space-y-4 text-sm sm:text-[0.9375rem] leading-relaxed">
           <p className="text-[var(--foreground)]">
             I am an <span className="inline-pill">AI Engineer</span> based in Agartala, Tripura. I build <span className="inline-pill">AI products</span>, <span className="inline-pill">software</span>, <span className="inline-pill">websites</span> and <span className="inline-pill">automations</span> that turn operational data into clear action.
           </p>

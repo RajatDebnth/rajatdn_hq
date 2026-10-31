@@ -30,11 +30,11 @@ const heading = "font-semibold tracking-tight text-[var(--foreground)]";
 const tableCell = "border-b border-[var(--line)] px-4 py-3 align-top";
 
 export const blogMdxComponents = {
-  h2: ({ children }: { children?: ReactNode }) => <h2 className={`mb-4 mt-12 text-2xl ${heading}`} id={idFromChildren(children)}>{children}</h2>,
-  h3: ({ children }: { children?: ReactNode }) => <h3 className={`mb-3 mt-9 text-xl ${heading}`} id={idFromChildren(children)}>{children}</h3>,
-  p: ({ children }: { children?: ReactNode }) => <p className="my-5 leading-8 text-[var(--muted)]">{children}</p>,
-  ul: ({ children }: { children?: ReactNode }) => <ul className="my-5 list-disc space-y-2 pl-6 leading-7 text-[var(--muted)]">{children}</ul>,
-  ol: ({ children }: { children?: ReactNode }) => <ol className="my-5 list-decimal space-y-2 pl-6 leading-7 text-[var(--muted)]">{children}</ol>,
+  h2: ({ children }: { children?: ReactNode }) => <h2 className={`mb-3 mt-9 text-base sm:text-lg font-bold ${heading}`} id={idFromChildren(children)}>{children}</h2>,
+  h3: ({ children }: { children?: ReactNode }) => <h3 className={`mb-2 mt-7 text-sm sm:text-base font-semibold ${heading}`} id={idFromChildren(children)}>{children}</h3>,
+  p: ({ children }: { children?: ReactNode }) => <p className="my-4 text-sm sm:text-[0.9375rem] leading-relaxed text-[var(--muted)]">{children}</p>,
+  ul: ({ children }: { children?: ReactNode }) => <ul className="my-4 list-disc space-y-1.5 pl-5 text-sm sm:text-[0.9375rem] leading-relaxed text-[var(--muted)]">{children}</ul>,
+  ol: ({ children }: { children?: ReactNode }) => <ol className="my-4 list-decimal space-y-1.5 pl-5 text-sm sm:text-[0.9375rem] leading-relaxed text-[var(--muted)]">{children}</ol>,
   blockquote: ({ children }: { children?: ReactNode }) => <blockquote className="my-7 border-l-2 border-[var(--accent)] pl-5 text-[var(--muted)]">{children}</blockquote>,
   a: ({ href, children }: ComponentPropsWithoutRef<"a">) => <a className="text-[var(--accent)] underline-offset-4 hover:underline" href={href}>{children}</a>,
   pre: MarkdownPre,

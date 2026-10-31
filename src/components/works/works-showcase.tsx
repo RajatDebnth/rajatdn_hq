@@ -157,6 +157,84 @@ function CardPreviewMedia({ type }: { type?: WorkItem["previewType"] }) {
     );
   }
 
+  if (type === "news-assistant") {
+    return (
+      <div className="relative w-full h-full bg-gradient-to-br from-[#0c1824] via-[#102436] to-[#1e3a5f] p-3.5 flex flex-col justify-center text-left text-white shadow-xs">
+        <div className="flex items-center justify-between">
+          <span className="font-mono text-[0.5625rem] font-semibold text-cyan-300 uppercase tracking-widest">
+            Telegram AI Feed
+          </span>
+          <span className="rounded-full bg-cyan-950/80 border border-cyan-500/40 px-1.5 py-0.2 font-mono text-[0.5rem] text-cyan-300">
+            Daily Cron
+          </span>
+        </div>
+        <h4 className="mt-1 text-base sm:text-lg font-black tracking-tight text-white leading-tight">
+          AI News Assistant
+        </h4>
+        <div className="mt-2 flex items-center gap-1.5 flex-wrap">
+          <span className="rounded bg-white/10 px-1.5 py-0.5 font-mono text-[0.5625rem] text-slate-200">
+            Google News RSS
+          </span>
+          <span className="rounded bg-white/10 px-1.5 py-0.5 font-mono text-[0.5625rem] text-slate-200">
+            Gemini Flash
+          </span>
+        </div>
+      </div>
+    );
+  }
+
+  if (type === "rag-chatbot") {
+    return (
+      <div className="relative w-full h-full bg-[#0d1117] border border-indigo-950/70 p-3.5 flex flex-col justify-center text-left text-white shadow-xs">
+        <div className="flex items-center justify-between">
+          <span className="font-mono text-[0.5625rem] font-semibold text-indigo-300 uppercase tracking-widest">
+            Vector Retrieval RAG
+          </span>
+          <span className="rounded-full bg-emerald-950/70 border border-emerald-500/40 px-1.5 py-0.2 font-mono text-[0.5rem] font-bold text-emerald-400">
+            0% Hallucination
+          </span>
+        </div>
+        <h4 className="mt-1 text-base sm:text-lg font-black tracking-tight text-white leading-tight">
+          Website Enquiry Bot
+        </h4>
+        <div className="mt-2 flex items-center gap-1.5 flex-wrap">
+          <span className="rounded bg-indigo-950/80 border border-indigo-800/60 px-1.5 py-0.5 font-mono text-[0.5625rem] text-indigo-200">
+            ChromaDB
+          </span>
+          <span className="rounded bg-indigo-950/80 border border-indigo-800/60 px-1.5 py-0.5 font-mono text-[0.5625rem] text-indigo-200">
+            Domain Grounded
+          </span>
+        </div>
+      </div>
+    );
+  }
+
+  if (type === "excel-analyst") {
+    return (
+      <div className="relative w-full h-full bg-gradient-to-br from-[#062419] via-[#0d3829] to-[#124d38] p-3.5 flex flex-col justify-center text-left text-white shadow-xs">
+        <div className="flex items-center justify-between">
+          <span className="font-mono text-[0.5625rem] font-semibold text-emerald-300 uppercase tracking-widest">
+            Data Engineering + LLM
+          </span>
+          <span className="rounded-full bg-emerald-900/60 border border-emerald-400/40 px-1.5 py-0.2 font-mono text-[0.5rem] text-emerald-200">
+            &lt;800 Tokens
+          </span>
+        </div>
+        <h4 className="mt-1 text-base sm:text-lg font-black tracking-tight text-white leading-tight">
+          AI Excel Analyst
+        </h4>
+        <div className="mt-2 flex items-center gap-1.5 flex-wrap">
+          <span className="rounded bg-white/10 px-1.5 py-0.5 font-mono text-[0.5625rem] text-emerald-100">
+            Pandas Cleaning
+          </span>
+          <span className="rounded bg-white/10 px-1.5 py-0.5 font-mono text-[0.5625rem] text-emerald-100">
+            JSON Profiler
+          </span>
+        </div>
+      </div>
+    );
+  }
+
   if (type === "fit") {
     return (
       <div className="relative w-full h-full bg-[#18181b] flex flex-col items-center justify-center p-4 text-white">
@@ -311,7 +389,7 @@ export function WorksShowcase() {
       {/* 3 Images in a Row Layout (Near in Width) with Click Popup Modal & Hover Blur */}
       <section aria-label="Featured Works" className="mt-8 sm:mt-10">
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3.5 sm:gap-4 md:gap-4.5">
-          {filteredProjects.map((project) => (
+          {filteredProjects.map((project, index) => (
             <button
               type="button"
               key={project.id}
@@ -328,7 +406,10 @@ export function WorksShowcase() {
                     alt={project.title}
                     fill
                     sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, 33vw"
-                    className="object-cover"
+                    className="object-cover object-top"
+                    unoptimized
+                    priority={index < 3}
+                    loading={index < 3 ? "eager" : "lazy"}
                   />
                 ) : (
                   <CardPreviewMedia type={project.previewType} />

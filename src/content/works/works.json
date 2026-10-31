@@ -1,12 +1,62 @@
 [
   {
+    "id": "ai-news-assistant",
+    "title": "Automated Daily AI News Assistant",
+    "category": "AI and Automation",
+    "subtitle": "Event-Driven RSS & LLM Pipeline",
+    "link": "/blog/how-i-built-an-automated-daily-ai-news-assistant",
+    "linkType": "article",
+    "image": "/images/works/ai-news-assistant.jpg",
+    "previewType": "news-assistant",
+    "popup": {
+      "oneLiner": "An event-driven serverless Python pipeline that scrapes Google News RSS feeds, synthesizes technical takeaways via Gemini API, and delivers daily morning briefings to Telegram.",
+      "problem": "Engineers face information overload sifting through scattered news sources and marketing noise. This pipeline automates scraping, filters duplicates, and formats high-signal technical impacts.",
+      "workflow": [
+        {
+          "step": "1",
+          "title": "Rotating Scraper",
+          "desc": "Fetches Google News RSS feeds using an alternating calendar-day topic rotation to prevent feed overlap."
+        },
+        {
+          "step": "2",
+          "title": "Gemini Synthesis",
+          "desc": "Prompts Gemini 2.5 Flash-Lite with rigid Markdown layout rules to extract technical impacts and verified sources."
+        },
+        {
+          "step": "3",
+          "title": "Telegram Dispatch",
+          "desc": "Sends formatted digests via Telegram bot with character bounds and URL preview suppression."
+        }
+      ],
+      "techStack": [
+        "Python",
+        "Google GenAI SDK",
+        "feedparser",
+        "Telegram Bot API",
+        "GitHub Actions"
+      ],
+      "highlights": [
+        "Zero-cost serverless execution running on scheduled GitHub Actions cron runners",
+        "Alternating topic rotation keeping daily digests concise and within token budgets",
+        "Deterministic RSS preprocessing eliminating marketing fluff before model invocation"
+      ],
+      "ctas": [
+        {
+          "label": "Read Architecture Guide",
+          "url": "/blog/how-i-built-an-automated-daily-ai-news-assistant",
+          "type": "article"
+        }
+      ]
+    }
+  },
+  {
     "id": "landingvault",
     "title": "LandingVault — Design Reference Solution",
     "category": "Solutions",
     "subtitle": "Curated Reference Solution",
     "link": "https://landingvault.vercel.app/",
     "linkType": "demo",
-    "image": "",
+    "image": "/images/works/landingvault.png",
     "previewType": "landingvault",
     "popup": {
       "oneLiner": "LandingVault is a curated web platform and showcase solution aggregating high-converting landing page designs and reusable UI inspiration for others to reference.",
@@ -50,13 +100,63 @@
     }
   },
   {
+    "id": "taskflow",
+    "title": "TaskFlow — Workflow Productivity App",
+    "category": "Solutions",
+    "subtitle": "Productivity & Task Management",
+    "link": "https://task-flow-weld-two.vercel.app/",
+    "linkType": "demo",
+    "image": "/images/works/taskflow.png",
+    "previewType": "taskflow",
+    "popup": {
+      "oneLiner": "TaskFlow is a modern productivity and project management application designed to organize tasks, streamline workflows, and track daily progress.",
+      "problem": "Managing project milestones and to-do lists across scattered notes and cluttered spreadsheets creates friction. TaskFlow provides a clean workspace to prioritize, categorize, and monitor tasks in real time.",
+      "workflow": [
+        {
+          "step": "1",
+          "title": "Task Management",
+          "desc": "Quickly create, edit, prioritize, and check off items on your active to-do lists."
+        },
+        {
+          "step": "2",
+          "title": "Status Tracking",
+          "desc": "Visual indicators and progress states allow real-time monitoring of pending, in-progress, and completed tasks."
+        },
+        {
+          "step": "3",
+          "title": "Streamlined UI",
+          "desc": "A minimal, distraction-free interface built for rapid task entry and review."
+        }
+      ],
+      "techStack": [
+        "React",
+        "JavaScript",
+        "Tailwind CSS",
+        "Responsive UI",
+        "Vercel Edge"
+      ],
+      "highlights": [
+        "Zero-friction productivity focusing purely on core execution without heavy enterprise bloat",
+        "Fully responsive and accessible layout designed smoothly for desktop and mobile devices",
+        "Edge-deployed static delivery on Vercel delivering instant page loads"
+      ],
+      "ctas": [
+        {
+          "label": "Live Web App",
+          "url": "https://task-flow-weld-two.vercel.app/",
+          "type": "demo"
+        }
+      ]
+    }
+  },
+  {
     "id": "pencil-club",
     "title": "Pencil Club — E-Commerce Template",
     "category": "Design",
     "subtitle": "Landing Page Template",
     "link": "https://landingvault.vercel.app/landing-pages/Ecommerce/Pencil/index.html",
     "linkType": "demo",
-    "image": "",
+    "image": "/images/works/pencil-club.png",
     "previewType": "pencil-club",
     "popup": {
       "oneLiner": "Pencil Club is a minimalist, concept-driven e-commerce landing page template crafted for an analog stationery brand.",
@@ -100,13 +200,63 @@
     }
   },
   {
+    "id": "enquiry-rag-bot",
+    "title": "Domain-Grounded RAG Enquiry Chatbot",
+    "category": "AI and Automation",
+    "subtitle": "Vector Retrieval Support Agent",
+    "link": "/blog/how-i-built-a-real-time-website-enquiry-chatbot-using-rag-and-python",
+    "linkType": "article",
+    "image": "/images/works/enquiry-rag-bot.jpg",
+    "previewType": "rag-chatbot",
+    "popup": {
+      "oneLiner": "A real-time website support and technical sales chatbot that crawls documentation, indexes dense vector embeddings, and answers visitor questions grounded strictly in domain data.",
+      "problem": "Generic chatbots hallucinate pricing and feature details, while rule-based bots frustrate visitors. This RAG architecture enforces strict grounding, eliminating incorrect disclosures.",
+      "workflow": [
+        {
+          "step": "1",
+          "title": "Ingestion & Chunking",
+          "desc": "Crawls site HTML with BeautifulSoup, strips boilerplate scripts and styling, and segments clean text into overlapping windows."
+        },
+        {
+          "step": "2",
+          "title": "ChromaDB Indexing",
+          "desc": "Generates dense sentence embeddings and indexes chunks in ChromaDB for sub-millisecond semantic retrieval."
+        },
+        {
+          "step": "3",
+          "title": "Grounded Generation",
+          "desc": "Injects retrieved top-k context snippets into Gemini with strict boundary prompt engineering."
+        }
+      ],
+      "techStack": [
+        "Python",
+        "ChromaDB",
+        "BeautifulSoup4",
+        "Gemini 2.5 Flash",
+        "RAG Pipeline"
+      ],
+      "highlights": [
+        "Zero-hallucination guardrails instructing the assistant to refuse ungrounded queries",
+        "Instant knowledge base updates by modifying vector records without model retraining",
+        "Compact 3-to-5 chunk context injection minimizing prompt latency and token usage"
+      ],
+      "ctas": [
+        {
+          "label": "Read Architecture Guide",
+          "url": "/blog/how-i-built-a-real-time-website-enquiry-chatbot-using-rag-and-python",
+          "type": "article"
+        }
+      ]
+    }
+  },
+  {
     "id": "forma",
     "title": "Forma — Asset Library Template",
     "category": "Design",
     "subtitle": "Landing Page Template",
     "link": "https://landingvault.vercel.app/landing-pages/Business/Forma/index.html",
     "linkType": "demo",
-    "image": "",
+    "image": "/images/works/forma.png",
     "previewType": "forma",
     "popup": {
       "oneLiner": "Forma is a design-forward landing page template created for curated digital asset libraries, 3D render archives, and creative media platforms.",
@@ -150,101 +300,51 @@
     }
   },
   {
-    "id": "goodfit",
-    "title": "Goodfit — Talent Matching Template",
-    "category": "Design",
-    "subtitle": "Landing Page Template",
-    "link": "https://landingvault.vercel.app/landing-pages/Portfolio/GoodFit/index.html",
-    "linkType": "demo",
-    "image": "",
-    "previewType": "goodfit",
+    "id": "excel-ai-analyst",
+    "title": "AI Analyst For Excel Data",
+    "category": "AI and Automation",
+    "subtitle": "Automated Cleaning & Profiler",
+    "link": "/blog/how-i-built-an-ai-analyst-for-automated-excel-data-cleaning-and-analysis",
+    "linkType": "article",
+    "image": "/images/works/excel-ai-analyst.jpg",
+    "previewType": "excel-analyst",
     "popup": {
-      "oneLiner": "Goodfit is a human-centric landing page template designed for talent acquisition platforms, creative recruiting agencies, and freelancer networks.",
-      "problem": "Standard hiring platforms drown visitors in resume chaos and impersonal portal designs. This landing page template replaces sterile job board aesthetics with warm, human-first typography and candidate alignment cards.",
+      "oneLiner": "A hybrid data engineering pipeline that cleans raw user-uploaded spreadsheets deterministically with pandas, extracts statistical profile metrics, and generates AI executive reports.",
+      "problem": "Passing multi-thousand-row spreadsheets directly to LLMs wastes thousands of tokens and causes hallucinated numbers. This pipeline executes deterministic cleaning before LLM synthesis.",
       "workflow": [
         {
           "step": "1",
-          "title": "Dual Pathways",
-          "desc": "Tailored landing sections for growing teams ('Build a team that clicks') and talent ('Do work that gets you')."
+          "title": "Sanitization",
+          "desc": "Standardizes column headers to snake_case, strips string whitespace, drops empty bounds, and infers strict column types."
         },
         {
           "step": "2",
-          "title": "3-Step Matching Flow",
-          "desc": "Structured onboarding narrative from defining briefs ('Get Clear') to vetted match previews ('Meet Your Match')."
+          "title": "Statistical Profiler",
+          "desc": "Computes null percentages, unique counts, distributions, and numerical metrics into a compact JSON profile."
         },
         {
           "step": "3",
-          "title": "Interactive Candidate Cards",
-          "desc": "Mock workspace UI displaying live talent compatibility badges (e.g. 98% Match)."
+          "title": "AI Synthesis",
+          "desc": "Queries Gemini with the low-token summary and 5-row CSV sample to detect anomalies and produce executive insights."
         }
       ],
       "techStack": [
-        "HTML5",
-        "Modular CSS3",
-        "Interactive UI States",
-        "Card Components",
-        "Vercel Edge"
+        "Python",
+        "Pandas",
+        "OpenPyXL",
+        "Gemini 2.5 Flash",
+        "Data Profiling"
       ],
       "highlights": [
-        "Landing page template emphasizing human-first alignment, working preferences, and communication style",
-        "Minimalist editorial typography with professional card components and accordion FAQ patterns",
-        "Lightning-fast static edge delivery ensuring instant interactive preview loading"
+        "Slashes token consumption from 20,000+ tokens to under 800 tokens per spreadsheet",
+        "100% deterministic type coercion eliminating formatting hallucinations",
+        "Automated dual output producing both executive Markdown reports and cleaned Excel files"
       ],
       "ctas": [
         {
-          "label": "Live Demo",
-          "url": "https://landingvault.vercel.app/landing-pages/Portfolio/GoodFit/index.html",
-          "type": "demo"
-        }
-      ]
-    }
-  },
-  {
-    "id": "signal-social",
-    "title": "Signal Social — Agency Template",
-    "category": "Design",
-    "subtitle": "Landing Page Template",
-    "link": "https://landingvault.vercel.app/landing-pages/Business/Signal_Social/index.html",
-    "linkType": "demo",
-    "image": "",
-    "previewType": "signal-social",
-    "popup": {
-      "oneLiner": "Signal Social is a boutique agency landing page template designed for social media strategists, content creators, and growth agencies.",
-      "problem": "Marketing agencies struggle to stand out in crowded feeds using generic corporate templates. This landing page template combines thumb-stopping creative layouts with high-converting consultation flows.",
-      "workflow": [
-        {
-          "step": "1",
-          "title": "Hero Pitch",
-          "desc": "Bold typography hook ('Impossible to scroll past') with a zero-friction 30-min discovery call CTA."
-        },
-        {
-          "step": "2",
-          "title": "Triple Pillars",
-          "desc": "Clear three-part service presentation: brand identity creation, campaigns, and active community engagement."
-        },
-        {
-          "step": "3",
-          "title": "Social Proof Grid",
-          "desc": "Senior strategist team cards paired with verifiable metric callouts (3.4x ROAS, +186% growth)."
-        }
-      ],
-      "techStack": [
-        "HTML5",
-        "Responsive CSS3 Grid",
-        "Unsplash CDN",
-        "Micro-Interactions",
-        "Vercel Edge"
-      ],
-      "highlights": [
-        "Landing page template engineered specifically for agency brand positioning and client lead generation",
-        "People-before-platforms narrative guiding visitors from creative proof to an introductory consultation",
-        "Optimized responsive layouts with edge-hosted high-resolution media and smooth transitions"
-      ],
-      "ctas": [
-        {
-          "label": "Live Demo",
-          "url": "https://landingvault.vercel.app/landing-pages/Business/Signal_Social/index.html",
-          "type": "demo"
+          "label": "Read Architecture Guide",
+          "url": "/blog/how-i-built-an-ai-analyst-for-automated-excel-data-cleaning-and-analysis",
+          "type": "article"
         }
       ]
     }
@@ -256,7 +356,7 @@
     "subtitle": "UI Micro-Animation Utility",
     "link": "https://tone-rd.vercel.app/",
     "linkType": "demo",
-    "image": "",
+    "image": "/images/works/tonerd.png",
     "previewType": "tonerd",
     "popup": {
       "oneLiner": "ToneRD is a developer tool and UI component utility that allows front-end engineers to add instant micro-animations to UI buttons by swapping or adding Tailwind CSS classes.",
@@ -305,50 +405,100 @@
     }
   },
   {
-    "id": "taskflow",
-    "title": "TaskFlow — Workflow Productivity App",
-    "category": "Solutions",
-    "subtitle": "Productivity & Task Management",
-    "link": "https://task-flow-weld-two.vercel.app/",
+    "id": "signal-social",
+    "title": "Signal Social — Agency Template",
+    "category": "Design",
+    "subtitle": "Landing Page Template",
+    "link": "https://landingvault.vercel.app/landing-pages/Business/Signal_Social/index.html",
     "linkType": "demo",
-    "image": "",
-    "previewType": "taskflow",
+    "image": "/images/works/signal-social.png",
+    "previewType": "signal-social",
     "popup": {
-      "oneLiner": "TaskFlow is a modern productivity and project management application designed to organize tasks, streamline workflows, and track daily progress.",
-      "problem": "Managing project milestones and to-do lists across scattered notes and cluttered spreadsheets creates friction. TaskFlow provides a clean workspace to prioritize, categorize, and monitor tasks in real time.",
+      "oneLiner": "Signal Social is a boutique agency landing page template designed for social media strategists, content creators, and growth agencies.",
+      "problem": "Marketing agencies struggle to stand out in crowded feeds using generic corporate templates. This landing page template combines thumb-stopping creative layouts with high-converting consultation flows.",
       "workflow": [
         {
           "step": "1",
-          "title": "Task Management",
-          "desc": "Quickly create, edit, prioritize, and check off items on your active to-do lists."
+          "title": "Hero Pitch",
+          "desc": "Bold typography hook ('Impossible to scroll past') with a zero-friction 30-min discovery call CTA."
         },
         {
           "step": "2",
-          "title": "Status Tracking",
-          "desc": "Visual indicators and progress states allow real-time monitoring of pending, in-progress, and completed tasks."
+          "title": "Triple Pillars",
+          "desc": "Clear three-part service presentation: brand identity creation, campaigns, and active community engagement."
         },
         {
           "step": "3",
-          "title": "Streamlined UI",
-          "desc": "A minimal, distraction-free interface built for rapid task entry and review."
+          "title": "Social Proof Grid",
+          "desc": "Senior strategist team cards paired with verifiable metric callouts (3.4x ROAS, +186% growth)."
         }
       ],
       "techStack": [
-        "React",
-        "JavaScript",
-        "Tailwind CSS",
-        "Responsive UI",
+        "HTML5",
+        "Responsive CSS3 Grid",
+        "Unsplash CDN",
+        "Micro-Interactions",
         "Vercel Edge"
       ],
       "highlights": [
-        "Zero-friction productivity focusing purely on core execution without heavy enterprise bloat",
-        "Fully responsive and accessible layout designed smoothly for desktop and mobile devices",
-        "Edge-deployed static delivery on Vercel delivering instant page loads"
+        "Landing page template engineered specifically for agency brand positioning and client lead generation",
+        "People-before-platforms narrative guiding visitors from creative proof to an introductory consultation",
+        "Optimized responsive layouts with edge-hosted high-resolution media and smooth transitions"
       ],
       "ctas": [
         {
-          "label": "Live Web App",
-          "url": "https://task-flow-weld-two.vercel.app/",
+          "label": "Live Demo",
+          "url": "https://landingvault.vercel.app/landing-pages/Business/Signal_Social/index.html",
+          "type": "demo"
+        }
+      ]
+    }
+  },
+  {
+    "id": "goodfit",
+    "title": "Goodfit — Talent Matching Template",
+    "category": "Design",
+    "subtitle": "Landing Page Template",
+    "link": "https://landingvault.vercel.app/landing-pages/Portfolio/GoodFit/index.html",
+    "linkType": "demo",
+    "image": "/images/works/goodfit.png",
+    "previewType": "goodfit",
+    "popup": {
+      "oneLiner": "Goodfit is a human-centric landing page template designed for talent acquisition platforms, creative recruiting agencies, and freelancer networks.",
+      "problem": "Standard hiring platforms drown visitors in resume chaos and impersonal portal designs. This landing page template replaces sterile job board aesthetics with warm, human-first typography and candidate alignment cards.",
+      "workflow": [
+        {
+          "step": "1",
+          "title": "Dual Pathways",
+          "desc": "Tailored landing sections for growing teams ('Build a team that clicks') and talent ('Do work that gets you')."
+        },
+        {
+          "step": "2",
+          "title": "3-Step Matching Flow",
+          "desc": "Structured onboarding narrative from defining briefs ('Get Clear') to vetted match previews ('Meet Your Match')."
+        },
+        {
+          "step": "3",
+          "title": "Interactive Candidate Cards",
+          "desc": "Mock workspace UI displaying live talent compatibility badges (e.g. 98% Match)."
+        }
+      ],
+      "techStack": [
+        "HTML5",
+        "Modular CSS3",
+        "Interactive UI States",
+        "Card Components",
+        "Vercel Edge"
+      ],
+      "highlights": [
+        "Landing page template emphasizing human-first alignment, working preferences, and communication style",
+        "Minimalist editorial typography with professional card components and accordion FAQ patterns",
+        "Lightning-fast static edge delivery ensuring instant interactive preview loading"
+      ],
+      "ctas": [
+        {
+          "label": "Live Demo",
+          "url": "https://landingvault.vercel.app/landing-pages/Portfolio/GoodFit/index.html",
           "type": "demo"
         }
       ]

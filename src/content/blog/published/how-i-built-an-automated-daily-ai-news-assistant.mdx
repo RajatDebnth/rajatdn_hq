@@ -1,0 +1,188 @@
+---
+title: "How I Built an Automated Daily AI News Assistant with Free APIs and Python"
+slug: "how-i-built-an-automated-daily-ai-news-assistant"
+description: "Learn how to build a serverless Python pipeline that scrapes RSS feeds, synthesizes technical news with Gemini Free API, and dispatches briefings to Telegram."
+date: "2026-10-31"
+author: "Rajat Debnath"
+category: "AI Automation"
+tags:
+  - "AI"
+  - "Automation"
+  - "Python"
+  - "Free LLM API"
+featured: true
+draft: false
+seoTitle: "Build an Automated Daily AI News Assistant with Python & Gemini"
+seoDescription: "Learn how to build a serverless Python pipeline that scrapes RSS feeds, synthesizes technical news with Gemini Free API, and dispatches briefings to Telegram."
+faq:
+  - question: "How does this automated news pipeline run at zero cost?"
+    answer: "It utilizes public Google News RSS feeds, the free tier of Google's Gemini API, and serverless cron execution via platforms like GitHub Actions."
+  - question: "Why use topic rotation across calendar days?"
+    answer: "Alternating topics between even and odd days prevents news fatigue, keeps token usage well within free API quotas, and ensures summaries fit within Telegram's single-message limit."
+---
+
+Engineers and technical leaders often face information overload trying to stay current with AI research, framework updates, and backend infrastructure trends. Reading through scattered newsletters and unfiltered social feeds wastes valuable engineering time.
+
+In this guide, I break down the exact architecture I built: a lightweight, zero-cost Python pipeline that ingests Google News RSS feeds, extracts high-signal technical impacts using Google's Gemini API, and delivers daily morning briefings straight to Telegram.
+
+<Callout title="Zero-cost architecture" tone="note">
+Running high-frequency scraping or bloated LLM agents can quickly exhaust rate limits. This pipeline stays entirely free by pairing focused RSS queries with Google's free-tier Gemini API on serverless cron runners.
+</Callout>
+
+## What is the AI News Assistant?
+
+An AI News Assistant is an event-driven automation script connecting three core components: an RSS scraper for data ingestion, a Large Language Model (LLM) for content extraction and technical summarization, and a notification API for automated delivery.
+
+Instead of reading raw headlines across dozens of aggregator tabs and marketing clickbait, the pipeline normalizes feed entries, prompts an LLM with strict layout constraints to extract technical implications, and delivers a readable daily briefing.
+
+## Why does it matter?
+
+Manual news gathering suffers from two main problems: noise and context limits. Raw RSS feeds contain duplicate stories and promotional fluff, while unmoderated LLM monitoring can quickly consume context windows and API token budgets.
+
+By building a structured pipeline, developers can:
+
+- **Filter low-signal content** before sending text to the LLM.
+- **Rotate focus topics** across calendar days to keep message lengths short and relevant.
+- **Automate execution** on cloud runners (such as GitHub Actions) at zero infrastructure cost.
+
+## How does it work?
+
+The system is built as a three-stage pipeline in Python: scraping, summarization, and delivery.
+
+### 1. Rotating scraping logic (scraper.py)
+
+To prevent feed overlap and keep summaries concise, we query Google News RSS using an even/odd day rotation strategy:
+
+```python
+import feedparser
+import urllib.parse
+from datetime import datetime
+import pytz
+
+TOPICS_EVEN = {
+    "AI Capabilities": [
+        "Models: LLMs, Reasoning, Multimodal",
+        "RAG & Data: Vector Databases, Retrieval"
+    ]
+}
+
+TOPICS_ODD = {
+    "AI Engineering": [
+        "Developer AI: Coding Agents & Autonomous Dev",
+        "Infrastructure: Inference & Deployment"
+    ]
+}
+
+def fetch_news():
+    ist = pytz.timezone('Asia/Kolkata')
+    day = datetime.now(ist).day
+    active_topics = TOPICS_EVEN if day % 2 == 0 else TOPICS_ODD
+    
+    news_data = {}
+    for category, subtopics in active_topics.items():
+        news_data[category] = []
+        for sub in subtopics:
+            query = urllib.parse.quote(sub)
+            url = f"https://news.google.com/rss/search?q={query}+when:48h&hl=en-US&gl=US&ceid=US:en"
+            feed = feedparser.parse(url)
+            for entry in feed.entries[:2]:
+                news_data[category].append({
+                    "subtopic": sub,
+                    "title": entry.title,
+                    "link": entry.link
+                })
+    return news_data
+```
+
+### 2. High-signal summarization with Gemini (brain.py)
+
+We pass the scraped payloads into the official `google-genai` SDK. Using `gemini-2.5-flash-lite`, we enforce strict Markdown output rules so the model acts as a technical editor:
+
+```python
+import os
+from datetime import datetime
+from google import genai
+import pytz
+
+def summarize_news(raw_news):
+    client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+    
+    ist = pytz.timezone("Asia/Kolkata")
+    now = datetime.now(ist)
+    current_date = now.strftime("%A, %B %d, %Y")
+    current_time = now.strftime("%I:%M %p")
+
+    prompt = f"""
+    Role: Senior AI Architect.
+    Context: Deliver a high-signal briefing for Telegram.
+    Data: {raw_news}
+
+    Rules:
+    - Date/Time: {current_date} at {current_time} IST.
+    - Format: Telegram Markdown. No raw URLs. Use strictly [Full Report ↗️](link).
+    - Style: Concise, technical, objective.
+
+    Briefing Template:
+    📅 **{current_date}** | 🕒 **{current_time} IST**
+    ---
+    **[CATEGORY]**
+    • **[Title]**
+      - 💡 *Impact:* [1 sentence technical insight]
+      - 🔗 [Full Report ↗️](link)
+    """
+
+    try:
+        response = client.models.generate_content(
+            model="gemini-2.5-flash-lite", 
+            contents=prompt
+        )
+        return response.text
+    except Exception as e:
+        return f"⚠️ AI Summary Error: {str(e)}"
+```
+
+### 3. Dispatch to Telegram (telegram_bot.py)
+
+Finally, we send the summary to Telegram, handling character limits and suppressing link previews to keep the interface clean:
+
+```python
+import os
+import requests
+
+def send_to_telegram(message):
+    token = os.getenv("TELEGRAM_TOKEN")
+    chat_id = os.getenv("TELEGRAM_CHAT_ID")
+    url = f"https://api.telegram.org/bot{token}/sendMessage"
+    
+    if len(message) > 4050:
+        message = message[:4000] + "\n\n*(Briefing truncated)*"
+
+    payload = {
+        "chat_id": chat_id,
+        "text": message,
+        "parse_mode": "Markdown",
+        "disable_web_page_preview": True
+    }
+    
+    response = requests.post(url, data=payload)
+    return response.status_code == 200
+```
+
+## Business application and operational extensions
+
+This event-driven pattern extends beyond daily tech briefings. Engineering teams can adapt this architecture for operational automation:
+
+- **Security & CVE tracking**: Monitor vulnerability feeds and framework repositories for breaking advisories.
+- **Competitor intelligence**: Track product releases and engineering blogs across targeted companies.
+- **Internal compliance audits**: Summarize regulatory changes and policy updates for operational teams.
+
+When implementing this system in production, consider these operational constraints:
+
+- **Rate limiting**: Google News RSS limits rapid unmoderated scraping. Keep query frequencies bounded.
+- **Context budgeting**: Telegram enforces a 4,096-character limit per message. Enforce concise model prompts and fallback string slicing to avoid delivery failures.
+- **Stateless execution**: Run scheduled jobs on serverless cron runners like GitHub Actions or AWS EventBridge at zero idle cost.
+
+## Key takeaway
+
+Building an effective technical briefing assistant relies heavily on deterministic preprocessing and strict output formatting rather than raw model size. Combining lightweight scrapers with focused model prompts creates a dependable, automated intelligence feed at zero cost.
+

@@ -1,0 +1,182 @@
+---
+title: "How I Built a Real-Time Website Enquiry Chatbot Using RAG and Python"
+slug: "how-i-built-a-real-time-website-enquiry-chatbot-using-rag-and-python"
+description: "Learn how to build a custom website chatbot that crawls domain data, generates embeddings, and answers visitor questions accurately using RAG and Gemini."
+date: "2026-10-31"
+author: "Rajat Debnath"
+category: "AI Engineering"
+tags:
+  - "RAG"
+  - "Vector DB"
+  - "Python"
+  - "LLM"
+featured: true
+draft: false
+seoTitle: "Build a Real-Time Website Enquiry Chatbot with RAG & Python"
+seoDescription: "Learn how to build an accurate, domain-grounded website enquiry chatbot using BeautifulSoup, ChromaDB vector indexing, and Gemini RAG synthesis."
+faq:
+  - question: "Why use RAG instead of standard LLM prompts for website enquiries?"
+    answer: "Standard LLMs hallucinate proprietary details like pricing and SLAs. RAG forces the model to answer strictly from retrieved knowledge chunks, ensuring zero invented statements."
+  - question: "How do you update the chatbot when website content changes?"
+    answer: "You only need to re-crawl the modified page and update its vector records in ChromaDB; no model retraining or fine-tuning is required."
+---
+
+Every modern business website faces the same conversion challenge: visitors leave when they cannot quickly find answers about pricing, integration specs, or service offerings. Traditional static FAQs are rarely read, while generic chatbots often invent details or frustrate users with rigid menus.
+
+In this guide, I break down how I built an end-to-end Retrieval-Augmented Generation (RAG) enquiry chatbot in Python that crawls website documentation, indexes vector embeddings, and answers visitor questions grounded strictly in domain data.
+
+<Callout title="Grounded responses over generic chat" tone="note">
+Standard LLMs hallucinate proprietary details when asked about custom pricing or SLAs. RAG eliminates this by retrieving relevant text snippets from a vector database before the model generates a response.
+</Callout>
+
+## What is a RAG website enquiry chatbot?
+
+A website enquiry chatbot acts as an automated 24/7 technical sales and customer support representative. Unlike generic chatbots, this architecture relies on three distinct pipeline stages:
+
+- **Ingestion layer**: Web pages are fetched, cleaned of boilerplate HTML tags, and partitioned into logical overlapping segments.
+- **Vector indexing**: Text chunks are converted into dense vector embeddings using an embedding model and indexed in a vector store.
+- **Retrieval and generation**: When a visitor submits a question, the system retrieves the most semantically relevant text chunks and injects them into the prompt context for synthesis.
+
+```text
+┌─────────────────┐       ┌─────────────────┐       ┌─────────────────┐
+│ Web Site Data   │ ───►  │ Chunk & Embed   │ ───►  │ Vector Database │
+└─────────────────┘       └─────────────────┘       └────────┬────────┘
+                                                             │
+┌─────────────────┐       ┌─────────────────┐                │ Search Context
+│ Visitor Query   │ ───►  │ Semantic Search │ ───────────────┘
+└─────────────────┘       └────────┬────────┘
+                                   │
+                                   ▼
+┌─────────────────┐       ┌─────────────────┐
+│ Formatted AI    │ ◄───  │ LLM Generation  │
+│ Response        │       │ (Grounded RAG)  │
+└─────────────────┘       └─────────────────┘
+```
+
+## Why does RAG matter for business enquiries?
+
+Traditional rule-based chatbots frustrate visitors with inflexible decision trees, while unconstrained LLMs frequently hallucinate when asked about proprietary business details.
+
+Building a dedicated RAG architecture provides three core advantages:
+
+- **Zero invented claims**: Enforcing strict system instructions ensures the model admits when it lacks information rather than inventing pricing tiers.
+- **Instant knowledge updates**: When documentation or pricing changes, updating the vector database updates the assistant immediately without fine-tuning models.
+- **Cost efficiency**: Feeding only 3–5 relevant chunks per request keeps prompts compact, slashing token usage and latency.
+
+## How does it work?
+
+The system is constructed using Python, BeautifulSoup4 for HTML parsing, ChromaDB as the embedded vector store, and Google's official `google-genai` SDK.
+
+### 1. Ingestion and text preprocessing (scraper.py)
+
+First, we fetch raw site content, strip navigation and script noise, and chunk the clean text into overlapping windows to preserve semantic context across boundaries:
+
+```python
+import requests
+from bs4 import BeautifulSoup
+
+def fetch_and_chunk(url, chunk_size=500, overlap=50):
+    response = requests.get(url, timeout=10)
+    soup = BeautifulSoup(response.content, 'html.parser')
+    
+    # Strip script, style, and navigation noise
+    for element in soup(["script", "style", "nav", "footer"]):
+        element.decompose()
+        
+    text = soup.get_text(separator=' ')
+    clean_text = ' '.join(text.split())
+    
+    # Split text into overlapping windows
+    chunks = []
+    for i in range(0, len(clean_text), chunk_size - overlap):
+        chunks.append(clean_text[i:i + chunk_size])
+        
+    return chunks
+```
+
+### 2. Vector indexing with ChromaDB (vector_store.py)
+
+Next, we store the chunks in ChromaDB. Text segments are transformed into embeddings so semantic similarity can be queried in milliseconds:
+
+```python
+import chromadb
+from chromadb.utils import embedding_functions
+
+client = chromadb.Client()
+embedding_fn = embedding_functions.DefaultEmbeddingFunction()
+
+collection = client.create_collection(
+    name="website_docs", 
+    embedding_function=embedding_fn
+)
+
+def index_site_data(chunks):
+    documents = chunks
+    ids = [f"doc_{i}" for i in range(len(chunks))]
+    collection.add(documents=documents, ids=ids)
+
+def query_knowledge_base(user_query, n_results=3):
+    results = collection.query(
+        query_texts=[user_query],
+        n_results=n_results
+    )
+    return results['documents'][0]
+```
+
+### 3. Context injection and grounded synthesis (bot.py)
+
+Finally, we retrieve top snippets, inject them into the system prompt, and query Gemini using strict boundary rules:
+
+```python
+import os
+from google import genai
+from vector_store import query_knowledge_base
+
+ai_client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+
+def answer_visitor_enquiry(visitor_question):
+    relevant_chunks = query_knowledge_base(visitor_question, n_results=3)
+    context = "\n---\n".join(relevant_chunks)
+    
+    prompt = f"""
+    Role: Professional Web Support Assistant.
+    Context Information:
+    {context}
+    
+    User Query: {visitor_question}
+    
+    Rules:
+    - Answer using ONLY the provided Context Information above.
+    - If the context lacks enough data, state politely:
+      "I don't have that specific information. Please leave your email so our team can follow up."
+    - Be clear, professional, and concise.
+    """
+    
+    response = ai_client.models.generate_content(
+        model="gemini-2.5-flash-lite",
+        contents=prompt
+    )
+    return response.text
+
+if __name__ == "__main__":
+    query = "What are your team subscription pricing tiers?"
+    print(answer_visitor_enquiry(query))
+```
+
+## Business application and deployment patterns
+
+This architecture integrates into modern frontend stacks:
+
+- **Embeddable widgets**: Wrap the Python pipeline in a lightweight FastAPI service and connect it to a client-side chat interface.
+- **Lead capture fallback**: Trigger an email capture modal whenever the query falls outside indexed knowledge.
+- **Support ticket escalation**: Forward unresolved queries to CRM tools like HubSpot or Zendesk with complete conversation history.
+
+When deploying to production, monitor:
+
+- **Chunk granularity**: Overly large chunks inflate latency; undersized chunks lose critical context.
+- **Metadata tagging**: Attach source URLs to vector chunks to render clickable documentation references in answers.
+
+## Key takeaway
+
+A reliable website enquiry bot depends on structural grounding rather than clever prompting alone. Implementing a vector retrieval layer guarantees your AI assistant answers accurately from site data while preventing incorrect disclosures.
+

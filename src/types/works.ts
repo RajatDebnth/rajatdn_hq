@@ -39,6 +39,6 @@ export type WorkItem = {
   link: string;
   linkType?: WorkLinkType;
   image?: string;
-  previewType?: "swish" | "gravity" | "fit" | "checklist" | "stream" | "network" | "landingvault" | "pencil-club" | "forma" | "goodfit" | "signal-social" | "tonerd" | "taskflow";
+  previewType?: "swish" | "gravity" | "fit" | "checklist" | "stream" | "network" | "landingvault" | "pencil-club" | "forma" | "goodfit" | "signal-social" | "tonerd" | "taskflow" | "news-assistant" | "rag-chatbot" | "excel-analyst";
   popup?: WorkPopupDetails;
 };

@@ -77,7 +77,7 @@ export function ProjectModal({ project, onClose }: ProjectModalProps) {
             </div>
             <h2
               id="modal-project-title"
-              className="mt-1.5 text-xl sm:text-2xl font-bold tracking-tight text-[var(--foreground)]"
+              className="mt-1.5 text-lg sm:text-xl font-bold tracking-tight text-[var(--foreground)]"
             >
               {project.title}
             </h2>
@@ -94,21 +94,21 @@ export function ProjectModal({ project, onClose }: ProjectModalProps) {
         </div>
 
         {/* 6 Concise Sections */}
-        <div className="mt-5 space-y-5 text-sm">
+        <div className="mt-4 space-y-4 text-xs sm:text-sm">
           {/* Section 1: Access & Verified Source (Call to Action & Access) */}
-          <section className="pb-4 border-b border-[var(--line)]">
-            <h3 className="text-xs font-mono uppercase tracking-wider font-semibold text-[var(--muted)]">
+          <section className="pb-3.5 border-b border-[var(--line)]">
+            <h3 className="text-[0.6875rem] font-mono uppercase tracking-wider font-semibold text-[var(--muted)]">
               1. Access &amp; Verified Source
             </h3>
-            <div className="mt-2.5 flex flex-wrap items-center gap-2.5">
+            <div className="mt-2.5 flex flex-wrap items-center gap-2">
               {popup.ctas.map((cta) => {
                 const isExternal =
                   cta.url.startsWith("http://") || cta.url.startsWith("https://") || cta.url.startsWith("mailto:");
 
                 const buttonClasses =
                   cta.type === "github" || cta.type === "demo"
-                    ? "inline-flex items-center gap-2 rounded-full border border-zinc-900 bg-[#18181b] px-4 py-2 text-xs sm:text-sm font-semibold !text-white shadow-xs hover:bg-black active:scale-95 transition-all"
-                    : "inline-flex items-center gap-2 rounded-full border border-zinc-300 bg-white px-4 py-2 text-xs sm:text-sm font-semibold !text-zinc-900 shadow-xs hover:border-zinc-400 hover:bg-zinc-50 active:scale-95 transition-all";
+                    ? "inline-flex items-center gap-2 rounded-full border border-zinc-900 bg-[#18181b] px-3.5 py-1.5 text-xs sm:text-sm font-semibold !text-white shadow-xs hover:bg-black active:scale-95 transition-all"
+                    : "inline-flex items-center gap-2 rounded-full border border-zinc-300 bg-white px-3.5 py-1.5 text-xs sm:text-sm font-semibold !text-zinc-900 shadow-xs hover:border-zinc-400 hover:bg-zinc-50 active:scale-95 transition-all";
 
                 if (isExternal) {
                   return (
@@ -143,20 +143,20 @@ export function ProjectModal({ project, onClose }: ProjectModalProps) {
 
           {/* Section 2: What is it? (The One-Liner) */}
           <section>
-            <h3 className="text-xs font-mono uppercase tracking-wider font-semibold text-[var(--muted)]">
+            <h3 className="text-[0.6875rem] font-mono uppercase tracking-wider font-semibold text-[var(--muted)]">
               2. What is it?
             </h3>
-            <p className="mt-1 text-sm sm:text-base font-medium text-[var(--foreground)] leading-relaxed">
+            <p className="mt-1 text-xs sm:text-sm font-medium text-[var(--foreground)] leading-relaxed">
               {popup.oneLiner}
             </p>
           </section>
 
           {/* Section 3: What problem does it solve? (The Value Proposition) */}
           <section>
-            <h3 className="text-xs font-mono uppercase tracking-wider font-semibold text-[var(--muted)]">
+            <h3 className="text-[0.6875rem] font-mono uppercase tracking-wider font-semibold text-[var(--muted)]">
               3. Problem Solved
             </h3>
-            <div className="mt-1.5 rounded-lg border-l-2 border-[var(--foreground)] bg-[var(--surface-subtle)]/60 px-3.5 py-2.5 text-xs sm:text-sm text-[var(--foreground)] leading-relaxed">
+            <div className="mt-1.5 rounded-lg border-l-2 border-[var(--foreground)] bg-[var(--surface-subtle)]/60 px-3 py-2 text-xs sm:text-[0.8125rem] text-[var(--foreground)] leading-relaxed">
               {popup.problem}
             </div>
           </section>

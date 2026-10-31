@@ -14,8 +14,8 @@ export function ArticleCard({ article, headingLevel = 3, compact = false }: Arti
 
   if (compact) {
     return (
-      <article className="py-3 flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-1 sm:gap-4">
-        <Heading className="text-base sm:text-[1.05rem] font-semibold text-[var(--foreground)] leading-snug">
+      <article className="py-2.5 flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-1 sm:gap-4">
+        <Heading className="text-sm sm:text-[0.9375rem] font-semibold text-[var(--foreground)] leading-snug">
           <Link className="underline-offset-4 hover:underline" href={`/blog/${article.slug}`}>
             {article.title}
           </Link>
@@ -30,13 +30,13 @@ export function ArticleCard({ article, headingLevel = 3, compact = false }: Arti
   }
 
   return (
-    <article className="py-5">
-      <Heading className="text-lg sm:text-xl font-bold tracking-tight text-[var(--foreground)] leading-snug">
+    <article className="py-4">
+      <Heading className="text-base sm:text-lg font-bold tracking-tight text-[var(--foreground)] leading-snug">
         <Link className="underline-offset-4 hover:underline" href={`/blog/${article.slug}`}>{article.title}</Link>
       </Heading>
-      <div className="mt-1.5 flex flex-wrap items-center gap-2 text-sm text-[var(--muted)]"><time className="font-mono text-xs" dateTime={article.date}>{date}</time><span aria-hidden="true">·</span><span className="tag">{article.category}</span><span aria-hidden="true">·</span><span className="text-xs">{article.readingTime} min read</span></div>
-      <p className="mt-2.5 leading-7 text-[var(--muted)]">{article.description}</p>
-      {article.tags.length ? <ul aria-label="Article topics" className="mt-2.5 flex flex-wrap gap-x-3 gap-y-1 text-xs text-[var(--muted)]">{article.tags.slice(0, 4).map((tag) => <li key={tag}>#{tag.toLowerCase().replace(/\s+/g, "-")}</li>)}</ul> : null}
+      <div className="mt-1 flex flex-wrap items-center gap-2 text-xs sm:text-sm text-[var(--muted)]"><time className="font-mono text-xs" dateTime={article.date}>{date}</time><span aria-hidden="true">·</span><span className="tag">{article.category}</span><span aria-hidden="true">·</span><span className="text-xs">{article.readingTime} min read</span></div>
+      <p className="mt-2 text-sm leading-relaxed text-[var(--muted)]">{article.description}</p>
+      {article.tags.length ? <ul aria-label="Article topics" className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-[var(--muted)]">{article.tags.slice(0, 4).map((tag) => <li key={tag}>#{tag.toLowerCase().replace(/\s+/g, "-")}</li>)}</ul> : null}
     </article>
   );
 }

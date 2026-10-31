@@ -25,7 +25,11 @@ export default function BlogPage() {
         {categories.length ? <div aria-label="Article categories" className="mt-6 flex flex-wrap gap-2">{categories.map((category) => <span className="tag text-sm text-[var(--muted)]" key={category}>{category}</span>)}</div> : null}
       </header>
       {articles.length ? <section aria-labelledby="all-writing-title" className="mt-10"><h2 className="sr-only" id="all-writing-title">All technical writing</h2><div className="divide-y divide-[var(--line)]">{articles.map(({ metadata: article }) => <ArticleCard article={article} headingLevel={2} key={article.slug} />)}</div></section> : <p className="mt-10 text-[var(--muted)]">No articles have been published yet.</p>}
-      <p className="mt-8 text-sm text-[var(--muted)]"><Link className="underline underline-offset-4" href="/rss.xml">Subscribe via RSS</Link></p>
+      <p className="mt-10 border-t border-[var(--line)] pt-8 text-sm">
+        <Link className="underline underline-offset-4 hover:text-[var(--foreground)]" href="/works">
+          Explore My Works →
+        </Link>
+      </p>
     </Container>
   </>;
 }

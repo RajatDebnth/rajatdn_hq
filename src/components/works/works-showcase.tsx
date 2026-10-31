@@ -363,7 +363,7 @@ export function WorksShowcase() {
                 <button
                   type="button"
                   onClick={() => setActiveTab(tab.key)}
-                  className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs sm:text-sm font-semibold transition-all duration-200 cursor-pointer ${
+                  className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 sm:px-3.5 sm:py-1.5 text-[0.6875rem] sm:text-xs md:text-sm font-semibold transition-all duration-200 cursor-pointer ${
                     isActive
                       ? "border border-pink-500 text-pink-600 bg-white shadow-xs"
                       : "text-gray-500 hover:text-gray-900 hover:bg-gray-100/80"
@@ -371,7 +371,7 @@ export function WorksShowcase() {
                 >
                   <span>{tab.label}</span>
                   <span
-                    className={`rounded-full px-1.5 py-0.2 text-[0.6875rem] font-bold ${
+                    className={`rounded-full px-1.5 py-0.2 text-[0.625rem] sm:text-[0.6875rem] font-bold ${
                       isActive
                         ? "bg-pink-500 text-white"
                         : "bg-gray-200/80 text-gray-600"

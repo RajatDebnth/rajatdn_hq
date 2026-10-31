@@ -26,8 +26,30 @@
 }
 
 * { box-sizing: border-box; }
-html { scroll-behavior: smooth; scroll-padding-top: 5rem; }
-body { margin: 0; background: var(--background); color: var(--foreground); font-family: var(--font-sans); font-size: 0.9375rem; line-height: 1.6; text-rendering: optimizeLegibility; -webkit-font-smoothing: antialiased; }
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 5rem;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+body {
+  margin: 0;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+  min-width: 320px;
+}
+p, h1, h2, h3, h4, h5, h6, li, a {
+  overflow-wrap: break-word;
+}
+img, svg, video, canvas {
+  max-width: 100%;
+}
 a { color: inherit; }
 .font-serif { font-family: var(--font-serif); }
 .reading-width { max-width: var(--article-width); }

@@ -52,7 +52,7 @@ export function ProjectModal({ project, onClose }: ProjectModalProps) {
       role="dialog"
       aria-modal="true"
       aria-labelledby="modal-project-title"
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 overflow-y-auto no-scrollbar [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 md:p-5 overflow-y-auto no-scrollbar [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
     >
       {/* Blurred Backdrop */}
       <div
@@ -62,7 +62,7 @@ export function ProjectModal({ project, onClose }: ProjectModalProps) {
       />
 
       {/* Modal Dialog Card */}
-      <div className="relative w-full max-w-2xl rounded-2xl border border-[var(--line)] bg-[var(--background)] p-5 sm:p-7 shadow-2xl z-10 max-h-[90vh] overflow-y-auto no-scrollbar [scrollbar-width:none] [&::-webkit-scrollbar]:hidden text-left transition-all">
+      <div className="relative w-full max-w-2xl rounded-2xl border border-[var(--line)] bg-[var(--background)] p-4 sm:p-6 md:p-7 shadow-2xl z-10 max-h-[calc(100dvh-1.5rem)] sm:max-h-[88vh] overflow-y-auto no-scrollbar [scrollbar-width:none] [&::-webkit-scrollbar]:hidden text-left transition-all">
         {/* Header with Title and Close Button */}
         <div className="flex items-start justify-between gap-4 border-b border-[var(--line)] pb-4">
           <div>

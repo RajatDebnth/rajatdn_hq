@@ -388,44 +388,51 @@ export function WorksShowcase() {
 
       {/* 3 Images in a Row Layout (Near in Width) with Click Popup Modal & Hover Blur */}
       <section aria-label="Featured Works" className="mt-8 sm:mt-10">
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3.5 sm:gap-4 md:gap-4.5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-x-3.5 sm:gap-x-4 md:gap-x-4.5 gap-y-5 sm:gap-y-6 md:gap-y-6.5">
           {filteredProjects.map((project, index) => (
             <button
               type="button"
               key={project.id}
               onClick={() => setSelectedProject(project)}
-              className="group relative block w-full aspect-[16/10] rounded-2xl overflow-hidden cursor-pointer shadow-xs hover:shadow-lg transition-all duration-300 border border-black/5 text-left p-0"
+              className="group flex flex-col w-full text-left cursor-pointer transition-all p-0 border-0 bg-transparent"
               aria-haspopup="dialog"
               aria-label={`View details for ${project.title}`}
             >
-              {/* Preview Image: Real image or CSS fallback banner (blurs on hover) */}
-              <div className="absolute inset-0 w-full h-full transition-all duration-300 group-hover:scale-105 group-hover:blur-[2.5px]">
-                {project.image ? (
-                  <Image
-                    src={project.image}
-                    alt={project.title}
-                    fill
-                    sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, 33vw"
-                    className="object-cover object-top"
-                    unoptimized
-                    priority={index < 3}
-                    loading={index < 3 ? "eager" : "lazy"}
-                  />
-                ) : (
-                  <CardPreviewMedia type={project.previewType} />
-                )}
+              {/* Visual Card Container */}
+              <div className="relative w-full aspect-[16/10] rounded-2xl overflow-hidden shadow-xs group-hover:shadow-lg transition-all duration-300 border border-black/5 bg-[var(--surface)]">
+                {/* Preview Image: Real image or CSS fallback banner (blurs on hover) */}
+                <div className="absolute inset-0 w-full h-full transition-all duration-300 group-hover:scale-105 group-hover:blur-[2.5px]">
+                  {project.image ? (
+                    <Image
+                      src={project.image}
+                      alt={project.title}
+                      fill
+                      sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, 33vw"
+                      className="object-cover object-top"
+                      unoptimized
+                      priority={index < 3}
+                      loading={index < 3 ? "eager" : "lazy"}
+                    />
+                  ) : (
+                    <CardPreviewMedia type={project.previewType} />
+                  )}
+                </div>
+
+                {/* Quick View Overlay on hover */}
+                <div className="absolute inset-0 flex flex-col items-center justify-center p-4 bg-black/55 opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-center">
+                  <span className="text-white/90 text-xs font-mono uppercase tracking-wider">
+                    {project.subtitle}
+                  </span>
+                  <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-white/20 px-2.5 py-1 text-[0.6875rem] font-medium text-white backdrop-blur-xs transition-transform group-hover:scale-105">
+                    View Breakdown ↗
+                  </span>
+                </div>
               </div>
 
-              {/* Title & Quick View Overlay: Smoothly appears on hover */}
-              <div className="absolute inset-0 flex flex-col items-center justify-center p-4 bg-black/55 opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-center">
-                <h3 className="text-white font-bold text-base sm:text-lg leading-snug px-2 drop-shadow-sm">
+              {/* Title at bottom of the card - visible all the time outside the card */}
+              <div className="mt-2.5 px-0.5 text-left w-full">
+                <span className="block text-xs sm:text-[0.8125rem] font-semibold tracking-tight text-[var(--foreground)] transition-colors group-hover:text-pink-600 dark:group-hover:text-pink-400">
                   {project.title}
-                </h3>
-                <span className="mt-1 text-[0.6875rem] font-mono text-white/80 uppercase tracking-wider">
-                  {project.subtitle}
-                </span>
-                <span className="mt-3 inline-flex items-center gap-1 rounded-full bg-white/20 px-2.5 py-1 text-[0.6875rem] font-medium text-white backdrop-blur-xs transition-transform group-hover:scale-105">
-                  View Breakdown ↗
                 </span>
               </div>
             </button>

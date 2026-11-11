@@ -1,0 +1,157 @@
+---
+title: "Building Interactive Citations and Bidirectional PDF Viewers"
+description: "AI summaries are useless without verifiable proof. Learn how to build bidirectional PDF viewer links with bounding box sentence highlighting."
+date: "2026-11-12"
+author: "Rajat Debnath"
+category: "AI Research & Knowledge Assistants"
+tags: ["PDF Viewer", "Citations", "Frontend Engineering", "User Experience", "Groundedness"]
+readTime: "5 min read"
+---
+
+In enterprise AI applications, the single greatest impediment to user adoption is lack of trust. When an AI tool provides an executive summary of a 100-page regulatory filing or clinical trial, knowledge workers (lawyers, doctors, compliance officers, equity research analysts) cannot simply take the model's word for it.
+
+If an AI assistant generates a statement like `"The indemnification liability cap is strictly limited to 1.5x annual contract fees"`, the lawyer must verify the exact source sentence before signing off on an agreement.
+
+If your application merely renders a generic reference like `[Source: Contract.pdf]`, the user must manually open the PDF, press Ctrl+F, search for keywords, and scroll through 40 pages. This manual search friction destroys the productivity gains promised by the AI tool.
+
+To establish enterprise trust, software teams must build **Bidirectional Interactive Citations**: clicking a citation badge in the AI response immediately opens the document viewer, jumps to the exact page, and highlights the specific sentence bounding box in real time.
+
+---
+
+### The Bidirectional Citation Lifecycle
+
+```
+[1. Ingestion Phase: Bounding Box Coordinates Captured]
+PDF Page ===> Layout Parser (PyMuPDF / PDF.js)
+Captures: {
+  chunk_id: "chunk_4821",
+  doc_id: "doc_991",
+  page_number: 14,
+  text: "The aggregate liability under Section 8 shall not exceed 1.5x...",
+  bounding_box: { x0: 72.4, y0: 420.1, x1: 520.8, y1: 442.6 } # PDF coordinate space
+}
+
+[2. Generation Phase: Citation Tokens Injected]
+Model synthesizes: "The contract limits aggregate liability to 1.5x fees [cite:chunk_4821]."
+
+[3. Frontend Interaction: Interactive Pill Click]
+User clicks "[1]" pill in chat UI
+  |
+  +---> Splits screen into 50/50 dual-pane view: [Chat | PDF Viewer]
+  +---> PDF.js jumps directly to Page 14
+  +---> Canvas renders glowing yellow overlay over bounding box (x0, y0, x1, y1)
+  +---> Auto-scrolls viewport to center the highlighted paragraph.
+```
+
+The user verifies the source claim in less than two seconds with zero manual searching.
+
+---
+
+### Step-by-Step Implementation with PDF.js and React
+
+#### 1. Extracting Sentence-Level Coordinates during Chunking
+
+During document ingestion, capture exact character bounding boxes from the PDF layout tree using PyMuPDF:
+
+```python
+import fitz # PyMuPDF
+
+def extract_chunks_with_bounding_boxes(pdf_path: str):
+    doc = fitz.open(pdf_path)
+    chunks = []
+
+    for page_idx, page in enumerate(doc):
+        # Extract text blocks with exact coordinate rectangles
+        blocks = page.get_text("blocks") # (x0, y0, x1, y1, text, block_no, block_type)
+        
+        for block in blocks:
+            text = block[4].strip()
+            if len(text) > 50: # Filter out page numbers and noise
+                chunk_record = {
+                    "doc_id": pdf_path.split("/")[-1],
+                    "page": page_idx + 1,
+                    "text": text,
+                    "bbox": {
+                        "x0": block[0],
+                        "y0": block[1],
+                        "x1": block[2],
+                        "y1": block[3]
+                    }
+                }
+                chunks.append(chunk_record)
+                
+    return chunks
+```
+
+Store the `bbox` dictionary directly in the metadata payload of your vector database chunks.
+
+#### 2. Rendering Clickable Citation Pills in Markdown
+
+Use a custom markdown component in React to replace citations with interactive pills:
+
+```typescript
+// Custom React Markdown renderer
+import { usePdfViewerStore } from '@/stores/pdfViewerStore';
+
+export function CitationPill({ chunkId, citationIndex }: { chunkId: string; citationIndex: number }) {
+  const { jumpToCitation } = usePdfViewerStore();
+
+  return (
+    <button
+      onClick={() => jumpToCitation(chunkId)}
+      className="inline-flex items-center px-1.5 py-0.5 mx-0.5 text-xs font-semibold text-blue-600 bg-blue-50 border border-blue-200 rounded hover:bg-blue-100 transition-colors"
+      title="Click to view verified source in PDF"
+    >
+      [{citationIndex}]
+    </button>
+  );
+}
+```
+
+#### 3. Highlighting Bounding Boxes in PDF.js Canvas
+
+When the user clicks the pill, trigger the PDF viewer to render a highlight overlay over the canvas:
+
+```typescript
+// PDF Highlight Canvas Overlay
+function renderHighlightOverlay(
+  canvas: HTMLCanvasElement, 
+  bbox: { x0: number; y0: number; x1: number; y1: number }, 
+  scale: number
+) {
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+
+  // Scale coordinates to current PDF zoom level
+  const x = bbox.x0 * scale;
+  const y = bbox.y0 * scale;
+  const width = (bbox.x1 - bbox.x0) * scale;
+  const height = (bbox.y1 - bbox.y0) * scale;
+
+  // Draw semi-transparent highlight rectangle
+  ctx.fillStyle = 'rgba(255, 235, 59, 0.45)'; // Soft highlighter yellow
+  ctx.fillRect(x, y, width, height);
+
+  // Draw focus border
+  ctx.strokeStyle = 'rgba(245, 124, 0, 0.8)';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(x, y, width, height);
+}
+```
+
+---
+
+### UX Details That Win Over Knowledge Workers
+
+- **Bidirectional Reverse Highlighting:** Allow users to highlight any sentence in the PDF viewer with their cursor and click `"Ask AI about this"`, automatically passing the selected text as context.
+- **Side-by-Side Split View:** Never open the cited PDF in a new browser tab. A full-screen tab switch breaks conversation context. Use a collapsible split-screen pane that keeps the chat and document visible simultaneously.
+- **Quote Hover Cards:** Display a hover tooltip showing the exact 2-sentence cited excerpt immediately when the user hovers over the citation pill, allowing instant verification without even opening the PDF panel.
+
+---
+
+### Key Takeaways for Technical Founders
+
+- **Proof is Your Core Product:** In professional verticals (legal, medical, finance), the citation verification UX is more valuable to customers than the generative summary itself.
+- **Standardize on PDF Points:** Store coordinates in native PDF point space (72 points per inch) rather than screen pixels, ensuring highlights scale accurately across different zoom levels and device retina displays.
+- **Eliminate Stale Citations:** If a document is updated or replaced, invalidate associated vector chunks to prevent dead-link citations that degrade user trust.
+

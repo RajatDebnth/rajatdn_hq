@@ -1,0 +1,131 @@
+---
+title: "Cross-Document Contradiction Detection and Consensus Mapping"
+description: "Expert literature often presents conflicting findings. Discover how to build AI research assistants that detect contradictions and map consensus."
+date: "2026-11-12"
+author: "Rajat Debnath"
+category: "AI Research & Knowledge Assistants"
+tags: ["Contradiction Detection", "Consensus Mapping", "Research AI", "Fact Checking", "Evidence Synthesis"]
+readTime: "5 min read"
+---
+
+When software engineers build simple Q&A bots, the underlying assumption is that documents agree: the knowledge base holds a single objective ground truth, and the model's job is to locate and summarize it.
+
+In real-world scientific research, clinical medicine, investment analysis, and legal research, **documents actively disagree with one another**.
+- Two clinical trials evaluate the same pharmaceutical compound and reach opposite conclusions regarding patient efficacy due to differing cohort sizes.
+- Two equity research analysts evaluate the same enterprise software stock and issue conflicting price targets based on divergent revenue growth assumptions.
+- Two legal contracts or judicial precedents interpret an indemnification statute in conflicting ways.
+
+If your AI research assistant naively mashes these retrieved documents together into a single unified summary, it produces an incoherent, hallucinatory compromise: it either declares one paper's finding as absolute fact while ignoring the other, or synthesizes a muddled average that misleads the researcher.
+
+To build an authoritative AI research assistant, engineering teams must implement **Automated Cross-Document Contradiction Detection and Consensus Mapping**.
+
+---
+
+### The Architecture of Consensus and Contradiction Mapping
+
+Instead of a single-pass summary, the synthesis engine analyzes retrieved evidence through a structured comparative matrix:
+
+```
+[Retrieved Document Context Across 4 Studies]
+               |
+               v
+[Stage 1: Atomic Claim Extraction (Structured Output)]
+Extracts core claims, study sample sizes (N), methodology, and outcomes:
+- Study A (2023): Outcome = +14% Improvement (N = 1,200, Double-blind)
+- Study B (2024): Outcome = No Statistical Significance (N = 85, Observational)
+- Study C (2024): Outcome = +11% Improvement (N = 450, Double-blind)
+               |
+               v
+[Stage 2: Cross-Claim Pairwise Stance Classification]
+Evaluates relationships between pairs of extracted claims:
+- Relationship(Study A, Study C) ===> CONSENSUS (Strong agreement)
+- Relationship(Study A, Study B) ===> CONTRADICTION (Conflicting outcomes)
+               |
+               v
+[Stage 3: Evidence-Weighted Synthesis & Discrepancy Attribution]
+Generates comparative analysis explaining WHY the studies diverge:
+"While Study A and C report statistically significant efficacy in double-blind trials,
+Study B observed no significance, likely attributable to its smaller observational cohort."
+```
+
+---
+
+### Step-by-Step Implementation with Pydantic
+
+#### 1. Structured Claim and Methodology Extraction
+
+Before comparing documents, extract structured claims along with key methodological attributes:
+
+```python
+from pydantic import BaseModel, Field
+from typing import List, Literal
+
+class ExtractedClaim(BaseModel):
+    source_doc_id: str
+    finding_summary: str = Field(description="One-sentence factual assertion")
+    sentiment: Literal["positive", "negative", "inconclusive"]
+    sample_size: int = Field(description="Number of participants or sample count")
+    methodology_type: str = Field(description="e.g., Randomized Controlled Trial, Observational")
+    confidence_interval: str = Field(default="N/A")
+
+class PaperClaimExtraction(BaseModel):
+    claims: List[ExtractedClaim]
+```
+
+#### 2. Pairwise Contradiction and Stance Detection
+
+Evaluate the logical relationship between claims using a specialized prompt with constrained classification:
+
+```python
+class ClaimComparison(BaseModel):
+    claim_a_id: str
+    claim_b_id: str
+    relationship: Literal["consensus", "contradiction", "orthogonal"]
+    conflict_driver: Literal["sample_size", "differing_timeframe", "methodology_divergence", "none"]
+    explanation: str
+
+async def compare_claims(claim_a: ExtractedClaim, claim_b: ExtractedClaim) -> ClaimComparison:
+    completion = client.beta.chat.completions.parse(
+        model="gpt-4o",
+        messages=[
+            {
+                "role": "system", 
+                "content": "You are a scientific peer reviewer. Compare two extracted findings for direct agreement, conflict, or independence."
+            },
+            {
+                "role": "user", 
+                "content": f"Claim A: {claim_a.model_dump_json()}\nClaim B: {claim_b.model_dump_json()}"
+            }
+        ],
+        response_format=ClaimComparison
+    )
+    return completion.choices[0].message.parsed
+```
+
+#### 3. Evidence-Weighted Consensus Mapping in the UI
+
+In the frontend application, present findings using structured visual cards rather than plain text paragraphs:
+
+```
+[Synthesis View: Efficacy of Treatment X]
+Consensus Score: 75% Agreement across 4 reviewed studies
+
+Consensus Findings (3 Studies):
+- Significant reduction in symptom duration (Avg: -2.4 days)
+- Supported by Study 1 (N=1,200), Study 3 (N=450), Study 4 (N=310)
+
+Divergent / Contradictory Findings (1 Study):
+- Study 2 (N=85) reported no statistically significant variance.
+- Key Methodological Difference: Retrospective observational cohort vs. randomized double-blind.
+```
+
+This presentation provides researchers with the nuanced perspective they need to evaluate the scientific validity of the literature.
+
+---
+
+### Key Takeaways for Technical Founders
+
+- **Never Average Contradictory Claims:** An AI assistant that tells a doctor `"The drug reduces risk by 7%"` when one study says 14% and another says 0% is generating dangerous, fabricated compromises.
+- **Surface Methodology Differences:** Real experts evaluate findings based on sample size, study design, and publication dates; your extraction pipeline must capture these metadata parameters.
+- **Turn Contradictions into Interactive Filter Controls:** Allow researchers to toggle filters (e.g., `"Show only Double-Blind Trials with N > 500"`) to recalculate consensus dynamically.
+

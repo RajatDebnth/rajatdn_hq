@@ -1,0 +1,75 @@
+---
+title: "The Production Readiness Checklist for Generative AI Applications"
+description: "Shipping an AI prototype to production without an operational checklist invites disaster. Verify these 6 critical dimensions before launching."
+date: "2026-11-12"
+author: "Rajat Debnath"
+category: "Production Engineering & Architecture"
+tags: ["Production Readiness", "System Architecture", "Checklist", "Deployment", "Enterprise AI"]
+readTime: "5 min read"
+---
+
+Building a functional generative AI prototype takes an afternoon. With 50 lines of Python, an OpenAI API key, and Streamlit, a developer can demonstrate an AI knowledge assistant that impresses investors and executive stakeholders.
+
+Transitioning that prototype into an enterprise-ready production deployment takes months of rigorous engineering.
+
+In a prototype, edge cases are ignored, API keys are hard-coded in local `.env` files, rate limits are never hit, and an occasional hallucination is dismissed as a curiosity. In production, real enterprise customers submit broken PDFs, trigger concurrent load spikes, attempt prompt injections, and demand strict 99.9% uptime SLAs backed by legally binding contracts.
+
+Before taking generative AI features live to production users, CTOs, technical founders, and engineering teams must audit their architecture against this comprehensive **Production Readiness Checklist**.
+
+---
+
+### The 6 Dimensions of AI Production Readiness
+
+```
+[The Production AI Readiness Framework]
+1. Reliability & Resilience (Failover, Retries, Circuit Breakers)
+2. Performance & Scalability (Streaming, Asynchronous Queues, Caching)
+3. Security & Access Control (RBAC, JWT Identity Propagation, Secret Vaults)
+4. FinOps & Cost Governance (Token Metering, Hard Budgets, Model Routing)
+5. Quality & Evaluation CI (Golden Benchmarks, Regression Gates, Human Feedback)
+6. Observability & APM (OpenTelemetry Spans, TTFT Monitoring, Trace Logging)
+```
+
+---
+
+### The Engineering Checklist by Category
+
+#### 1. Reliability & Provider Resilience
+- [ ] **Multi-Provider Failover:** Has the application implemented an automatic circuit breaker that switches from the primary model (e.g., OpenAI) to a secondary model (e.g., Anthropic on AWS Bedrock) when HTTP 500 or 529 error rates spike?
+- [ ] **Exponential Backoff on 429s:** Do all API calls wrap external SDK invocations with jittered exponential backoff rather than immediate retries that exacerbate upstream rate limit throttling?
+- [ ] **Asynchronous Workers for Heavy Tasks:** Are multi-step agent workflows and document ingestion tasks offloaded to background workers (BullMQ, Celery) to prevent reverse proxy 30-second timeouts?
+
+#### 2. Performance & User Experience
+- [ ] **Token Streaming Enabled:** Does the frontend consume responses via Server-Sent Events (SSE) or WebSockets with Time-to-First-Token (TTFT) under 600 milliseconds?
+- [ ] **Optimistic State Updates:** Does the user interface render user messages immediately with clear loading or typing indicators?
+- [ ] **Dual-Tier Caching:** Is an exact-hash cache implemented for identical prompt queries, alongside a semantic vector cache for repetitive questions?
+
+#### 3. Security, Authentication & Governance
+- [ ] **Zero Hardcoded Secrets:** Are all third-party provider API keys stored in HashiCorp Vault or AWS Secrets Manager and rotated dynamically without requiring container redeployments?
+- [ ] **End-to-End Identity Propagation:** Are authenticated JWT claims (`user_id`, `org_id`) propagated into vector database query filters and tool execution dispatchers to prevent unauthorized access?
+- [ ] **Untrusted LLM Execution Boundary:** Do backend tool execution handlers enforce deterministic ownership checks on resource IDs rather than trusting LLM-generated arguments?
+- [ ] **Zero Data Retention (ZDR) Enforced:** Have enterprise DPAs been executed with model vendors confirming that customer prompts are never retained for model training?
+
+#### 4. FinOps & Cost Controls
+- [ ] **Per-Tenant Token Metering:** Does an internal API gateway log prompt tokens, completion tokens, and cached tokens attributed to individual tenant IDs?
+- [ ] **Hard Spend Ceilings:** Are hard monthly billing caps configured in both model provider consoles and internal Redis quota counters to prevent runaway cost spikes from infinite agent loops?
+- [ ] **Prompt Caching Optimized:** Are static system instructions and few-shot examples structured with consistent prefixes exceeding 1,024 tokens to maximize KV cache discounts?
+
+#### 5. Quality, Evals & Guardrails
+- [ ] **Automated CI Regression Gate:** Does every code push run an automated evaluation benchmark against a fixed golden dataset of at least 100 historical production queries?
+- [ ] **Strict Structured Outputs:** Do backend-facing endpoints use constrained decoding (`strict: true`) and Pydantic schemas rather than unconstrained markdown prompting?
+- [ ] **Fallback Thresholds:** Does the system provide clear fallback phrases (`"I do not have enough verified context to answer this accurately"`) when vector retrieval similarity scores fall below confidence thresholds?
+
+#### 6. Observability & Incident Response
+- [ ] **Distributed Tracing (OpenTelemetry):** Is every user interaction linked by a unique `trace_id` recording spans across retrieval, reranking, and generation?
+- [ ] **Emergency Kill Switch:** Can on-call engineers disable specific autonomous tools or downgrade models globally via feature flags in under 1 second during an incident?
+- [ ] **Feedback Instrumentation:** Does the application track implicit behavioral feedback (copy events, regenerations, diffs) and correlate them back to trace logs?
+
+---
+
+### The Launch Readiness Gate
+
+An engineering organization should not flip a generative AI feature to 100% of customer traffic until all items marked above have verified automated tests or operational runbooks in place. 
+
+Deploying through this structured framework transforms AI from an experimental prototype into an enterprise-grade revenue driver.
+

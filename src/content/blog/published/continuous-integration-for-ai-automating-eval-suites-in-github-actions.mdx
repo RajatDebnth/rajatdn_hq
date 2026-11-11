@@ -1,0 +1,169 @@
+---
+title: "Continuous Integration for AI: Automating Eval Suites in GitHub Actions"
+description: "Stop deploying prompt changes blindly. Learn how engineering teams build automated AI evaluation gates in GitHub Actions to block regressions in CI."
+date: "2026-11-12"
+author: "Rajat Debnath"
+category: "Production Engineering & Architecture"
+tags: ["Continuous Integration", "GitHub Actions", "Evaluation", "MLOps", "Automated Testing"]
+readTime: "5 min read"
+---
+
+In traditional software development, no senior engineer would permit merging a pull request without passing automated unit tests, integration suites, and linting checks in continuous integration (CI). Automated CI pipelines provide the confidence required to ship features multiple times a day.
+
+In generative AI engineering, teams frequently deploy prompt modifications based purely on gut feeling: an engineer tests three queries manually in an OpenAI playground, decides the responses "look good", and merges the code directly to main.
+
+This lack of CI automation causes severe quality regressions in production:
+- A prompt tweak that fixes an edge case in English degrades accuracy in Spanish by 25%.
+- A model upgrade from GPT-4o to a cheaper model passes basic Q&A tests but silently breaks structured JSON extraction on nested objects.
+- A system prompt change causes average output token lengths to double, inflating monthly API expenses by thousands of dollars.
+
+To ship AI features with enterprise velocity, software teams must build **Automated AI Evaluation Pipelines directly in GitHub Actions**.
+
+---
+
+### The Architecture of an AI CI Evaluation Gate
+
+Every pull request that modifies prompts, retrieval logic, or model hyperparameters automatically triggers an automated evaluation benchmark before merge approval:
+
+```
+[Developer Opens Pull Request in GitHub]
+       | (Touches prompts/system_prompt.txt or src/rag/)
+       v
+[GitHub Actions Workflow Triggered]
+       |
+       +---> Stage 1: Static Code Linter & Schema Checks (20s)
+       |
+       +---> Stage 2: Automated Eval Suite Run (2-3 minutes)
+       |        - Executes 100 Golden Benchmark Test Cases
+       |        - Compares Candidate PR vs. Main Branch Baseline
+       |        - Scores: Retrieval Recall, Answer Faithfulness, Schema Adherence
+       v
+[Automated Evaluation Report Commented on PR]
+- Retrieval Recall: 96.2% (Baseline: 95.0% - PASS)
+- Faithfulness: 98.1% (Baseline: 98.0% - PASS)
+- Token Consumption: 320 avg (Baseline: 345 avg - 7% IMPROVEMENT)
+- Regressions: 0 critical failures detected
+       |
+       v
+[Pull Request Status: GREEN - Approved for Merge]
+```
+
+If the evaluation suite detects regressions—such as accuracy dropping below 90% or schema errors occurring—the CI pipeline fails, blocking the pull request from merging.
+
+---
+
+### Step-by-Step Implementation with GitHub Actions and DeepEval
+
+#### 1. Curating the Golden Benchmark Dataset
+
+Store an authoritative evaluation dataset in your git repository: `tests/evals/golden_benchmark.json`:
+
+```json
+[
+  {
+    "input": "What is our company policy on remote work expense reimbursements?",
+    "expected_context": ["Employees receive up to $500 annually for home office equipment."],
+    "ground_truth": "The company provides up to $500 annually for eligible home office equipment expenses."
+  },
+  {
+    "input": "How do I initiate a SOC 2 security review for a third-party vendor?",
+    "expected_context": ["Submit a vendor assessment ticket to the InfoSec team via Jira."],
+    "ground_truth": "Submit a vendor assessment ticket to InfoSec in Jira before signing contracts."
+  }
+]
+```
+
+#### 2. Writing the Automated Pytest Evaluation Harness
+
+Use evaluation frameworks like DeepEval or Ragas to score candidate completions deterministically:
+
+```python
+# tests/evals/test_rag_pipeline.py
+import pytest
+import json
+from deepeval.metrics import FaithfulnessMetric, AnswerRelevancyMetric
+from deepeval.test_case import LLMTestCase
+from app.services.rag_service import execute_rag_pipeline
+
+# Load golden benchmark cases
+with open("tests/evals/golden_benchmark.json") as f:
+    benchmark_cases = json.load(f)
+
+@pytest.mark.parametrize("case", benchmark_cases)
+def test_rag_accuracy_regression(case):
+    # 1. Execute candidate RAG pipeline under test
+    prediction = execute_rag_pipeline(case["input"])
+    
+    test_case = LLMTestCase(
+        input=case["input"],
+        actual_output=prediction["answer"],
+        retrieval_context=prediction["retrieved_chunks"],
+        expected_output=case["ground_truth"]
+    )
+    
+    # 2. Evaluate Faithfulness (Hallucination check)
+    faithfulness = FaithfulnessMetric(threshold=0.85)
+    faithfulness.measure(test_case)
+    
+    # 3. Evaluate Relevancy
+    relevancy = AnswerRelevancyMetric(threshold=0.85)
+    relevancy.measure(test_case)
+    
+    assert faithfulness.is_successful(), f"Hallucination detected on prompt: {case['input']}"
+    assert relevancy.is_successful(), f"Irrelevant answer generated on prompt: {case['input']}"
+```
+
+#### 3. Configuring the GitHub Actions Workflow
+
+Define a workflow in `.github/workflows/ai-evals.yml` that runs on every pull request targeting `main`:
+
+```yaml
+name: AI Evaluation CI
+
+on:
+  pull_request:
+    paths:
+      - 'src/prompts/**'
+      - 'src/rag/**'
+      - 'tests/evals/**'
+
+jobs:
+  evaluate-ai:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install Dependencies
+        run: pip install -r requirements.txt pytest deepeval
+
+      - name: Run Automated AI Evals
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_CI_KEY }}
+        run: pytest tests/evals/test_rag_pipeline.py --junitxml=eval_results.xml
+```
+
+---
+
+### Managing Cost and Execution Speed in CI
+
+Running a 100-sample evaluation suite on every commit can become expensive if executed carelessly. Follow three cost-saving rules:
+
+- **Path Filtering:** Only run the AI evaluation job if files in `prompts/`, `rag/`, or `evals/` were modified in the commit.
+- **Use Efficient Judge Models:** For hallucination checks and faithfulness metrics in CI, use lightweight judge models like GPT-4o-mini or Claude 3.5 Haiku, keeping total CI run cost under $0.35 per pull request.
+- **Parallelize Test Execution:** Run pytest across 4 parallel threads using `pytest-xdist` to complete 100 evaluation checks in under 90 seconds.
+
+---
+
+### Executive Checklist for CTOs
+
+1. **Mandate Green Evals for Merge:** Enforce a GitHub branch protection rule requiring the `AI Evaluation CI` status check to pass before PR merge buttons unlock.
+2. **Expand Benchmarks from Production Failures:** Ensure that whenever a customer submits a thumbs-down bug report, the prompt and ground-truth answer are added to `golden_benchmark.json`.
+3. **Audit Token Spend in CI:** Track monthly CI evaluation token bills to ensure test runs do not exceed allocated development budgets.
+

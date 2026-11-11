@@ -1,0 +1,140 @@
+---
+title: "Extracting Tables, Figures, and Equations from Technical Documents"
+description: "Standard OCR destroys tables and math. Learn how to extract complex financial tables, figures, and LaTeX equations for AI research assistants."
+date: "2026-11-12"
+author: "Rajat Debnath"
+category: "AI Research & Knowledge Assistants"
+tags: ["Table Extraction", "Document Parsing", "LaTeX", "Multimodal AI", "Data Extraction"]
+readTime: "5 min read"
+---
+
+In scientific research, financial auditing, and engineering domains, the most valuable insights rarely reside in standard paragraph prose. The core findings live inside complex multi-column balance sheets, clinical trial statistical tables, mathematical equations, and architectural system diagrams.
+
+When software teams run these technical documents through standard open-source PDF extractors (like `pdfplumber` or `pypdf`), the extraction completely disintegrates:
+- Multi-row merged table cells collapse into an unaligned sequence of floating numbers.
+- Mathematical equations with fractions and integrals turn into corrupted ASCII gibberish (`x 2 + y 2 = z / 4`).
+- Visual charts and architecture figures are ignored entirely, leaving critical qualitative findings unindexed.
+
+When a researcher asks `"What was the percentage increase in EBITDA between 2023 and 2024?"`, the RAG pipeline hallucinates or fails because the underlying numerical table was shredded during ingestion.
+
+To build an enterprise-grade AI research assistant, engineering teams must implement **Multimodal Document Layout Analysis, Structured Table Transcription, and LaTeX Equation Extraction**.
+
+---
+
+### The Anatomy of Document Parsing Breakdown
+
+```
+[Original PDF Document: Multi-Column Table]
+| Metric            | Q3 2023 | Q3 2024 | YoY Growth |
+| Recurring Revenue | $14.2M  | $19.8M  | +39.4%     |
+| Net Gross Margin  | 74.2%   | 78.5%   | +430 bps   |
+
+[Naive Text Extractor (pdfminer / pypdf) - Corrupted Stream]
+"Metric Q3 2023 Q3 2024 YoY Growth Recurring Revenue $14.2M $19.8M +39.4% Net Gross Margin 74.2% 78.5% +430 bps"
+(All relational coordinates between rows and columns are completely lost!)
+
+[Vision-Based Layout Parser (Docling / PyMuPDF4LLM) - Clean Markdown]
+| Metric | Q3 2023 | Q3 2024 | YoY Growth |
+| :--- | :--- | :--- | :--- |
+| Recurring Revenue | $14.2M | $19.8M | +39.4% |
+| Net Gross Margin | 74.2% | 78.5% | +430 bps |
+(Cell relationships, headers, and numerical alignment perfectly preserved).
+```
+
+---
+
+### 3 Technical Strategies for Complex Document Ingestion
+
+#### 1. Vision-Based Table Extraction with Docling
+
+Modern document parsers like **Docling** (developed by IBM Research) replace heuristic rule-based text extraction with specialized vision-transformer models that perform object detection across page layouts:
+
+```python
+from docling.document_converter import DocumentConverter, PdfFormatOption
+from docling.datamodel.pipeline_options import PdfPipelineOptions
+
+# Configure pipeline for deep table structure analysis
+pipeline_options = PdfPipelineOptions()
+pipeline_options.do_table_structure = True
+pipeline_options.table_structure_options.do_cell_matching = True
+
+converter = DocumentConverter(
+    format_options={
+        PdfFormatOption.PDF: PdfFormatOption(pipeline_options=pipeline_options)
+    }
+)
+
+def extract_structured_pdf(file_path: str):
+    conv_result = converter.convert(file_path)
+    
+    # 1. Export clean Markdown preserving tables as Markdown tables
+    markdown_output = conv_result.document.export_to_markdown()
+    
+    # 2. Extract tables as structured Pandas DataFrames for programmatic calculations
+    tables = [table.export_to_dataframe() for table in conv_result.document.tables]
+    
+    return markdown_output, tables
+```
+
+By extracting tables both as Markdown strings (for LLM context windows) and Pandas DataFrames (for code execution tools), the AI assistant can either reason over the table in text or compute exact calculations using Python code execution sandboxes.
+
+#### 2. Preserving Mathematical Notation with LaTeX Transcription
+
+In scientific and quantitative finance papers, mathematical equations express formulas that text extractors render unreadable. 
+
+Using specialized models like **Nougat** or multimodal vision models (GPT-4o Vision), transcode raw pixel regions containing math into valid LaTeX syntax:
+
+```
+[Raw Visual PDF: Mathematical Formula]
+[Formula Pixels: Integral of f(x) from 0 to infinity]
+                    |
+                    v
+[Vision-to-LaTeX Transcriber]
+Output: "$$\int_{0}^{\infty} f(x) \, dx = \lim_{t \to \infty} F(t) - F(0)$$"
+```
+
+When formulas are represented in LaTeX, frontier models understand the mathematical operations with high precision, allowing researchers to ask conceptual questions about variables and proofs.
+
+#### 3. Image Captioning and Figure Ingestion
+
+Charts, bar graphs, and system architecture diagrams contain insights that do not appear anywhere in document text. 
+
+During ingestion, crop visual figure bounding boxes and pass them to a vision model to generate structured textual descriptions before indexing:
+
+```python
+async def index_figure_with_caption(figure_image_bytes: bytes, page_num: int) -> dict:
+    # Generate dense semantic caption using vision LLM
+    caption_response = await client.chat.completions.create(
+        model="gpt-4o",
+        messages=[
+            {
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": "Describe this figure in detail. State chart type, axis labels, trends, and key data points."},
+                    {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{base64_img}"}}
+                ]
+            }
+        ]
+    )
+    
+    figure_caption = caption_response.choices[0].message.content
+    
+    # Embed figure caption into vector database with page reference
+    vector = embed_text(figure_caption)
+    return {
+        "content": f"[FIGURE on Page {page_num}]: {figure_caption}",
+        "vector": vector,
+        "metadata": {"page": page_num, "is_figure": True}
+    }
+```
+
+When a user searches for `"quarterly churn trends by region"`, the retriever matches the figure caption, allowing the AI assistant to summarize the visual chart accurately.
+
+---
+
+### Ingestion Engineering Checklist
+
+1. **Benchmark OCR Accuracy on Hard Test Pages:** Curate a 10-page test suite containing merged-cell tables, rotated pages, and formulas to evaluate parser accuracy before choosing an ingestion engine.
+2. **Never Chunk Tables Down the Middle:** Enforce a chunking rule that treats tables as atomic units. Splitting a table across two separate vector chunks breaks column headers and corrupts retrieval.
+3. **Store Raw Image Crops in S3:** Store extracted figure and table crops in S3 with signed URLs so your frontend can render the original visual crop alongside the AI answer.
+

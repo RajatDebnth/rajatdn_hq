@@ -1,0 +1,149 @@
+---
+title: "Load Testing and Concurrency Benchmarking for LLM Endpoints"
+description: "Standard load-testing tools fail when testing streaming LLM endpoints. Learn how to simulate hundreds of concurrent streaming users using Locust."
+date: "2026-11-12"
+author: "Rajat Debnath"
+category: "Production Engineering & Architecture"
+tags: ["Load Testing", "Benchmarking", "Concurrency", "Locust", "Performance Engineering"]
+readTime: "5 min read"
+---
+
+Most engineering teams conduct load testing by bombarding REST endpoints with tools like Apache JMeter or k6: simulate 1,000 virtual users sending HTTP GET requests, measure response status codes, and assert that 99% of requests complete in under 200 milliseconds.
+
+When you attempt to load-test generative AI applications using traditional benchmarking scripts, the results are almost completely useless.
+
+LLM endpoints differ from standard web endpoints in three fundamental ways:
+1. **Persistent Streaming Connections:** Rather than returning an immediate payload, the server holds open a Server-Sent Events (SSE) or WebSocket connection for 3 to 10 seconds while generating tokens.
+2. **Upstream Rate Limit Throttling:** Commercial model providers (OpenAI, Anthropic) enforce strict Token-per-Minute (TPM) and Request-per-Minute (RPM) rate limits. Simulating synthetic traffic without rate limit awareness quickly exhausts organizational credit quotas or triggers account-level IP throttling.
+3. **GPU VRAM Queue Saturation:** In self-hosted vLLM or TensorRT clusters, concurrency is bounded by available GPU high-bandwidth memory (PagedAttention KV cache blocks). When concurrency exceeds VRAM capacity, requests stall in server queues, causing latency to spike exponentially.
+
+To benchmark real-world capacity accurately, software teams must implement **Streaming-Aware Concurrency Load Testing**.
+
+---
+
+### Key Benchmarking Metrics for LLM Systems
+
+```
+[The 3 Critical Concurrency Benchmarks]
+
+1. TTFT Under Load (Time-to-First-Token Degradation):
+   - 1 Concurrent User ===> TTFT = 280 ms
+   - 50 Concurrent Users ===> TTFT = 340 ms
+   - 200 Concurrent Users ===> TTFT = 1,850 ms  <=== Saturated Ingestion!
+
+2. Token Generation Throughput (Tokens per Second - TPS):
+   - Evaluates aggregate GPU serving capacity across all parallel streams.
+
+3. Error Rate & Upstream Throttling:
+   - Percentage of requests returning HTTP 429 (Rate Limited) or 504 (Gateway Timeout).
+```
+
+---
+
+### Step-by-Step Load Testing with Locust
+
+Locust is an open-source, Python-based load testing framework that natively supports asynchronous streaming inspection and custom token timing metrics:
+
+```python
+# load_test_llm.py
+import time
+from locust import HttpUser, task, between, events
+
+class AIStreamingUser(HttpUser):
+    wait_time = between(1, 4) # Realistic user think time between turns
+
+    @task
+    def test_streaming_chat(self):
+        payload = {
+            "model": "gpt-4o",
+            "messages": [
+                {"role": "user", "content": "Explain how distributed database transactions work in 200 words."}
+            ],
+            "stream": True
+        }
+
+        start_time = time.time()
+        first_token_time = None
+        token_count = 0
+
+        # Stream response chunks from the endpoint
+        with self.client.post(
+            "/api/v1/chat/completions",
+            json=payload,
+            stream=True,
+            catch_response=True
+        ) as response:
+            if response.status_code != 200:
+                response.failure(f"HTTP Error {response.status_code}")
+                return
+
+            for chunk in response.iter_lines():
+                if chunk:
+                    # Record arrival of the first token (TTFT)
+                    if first_token_time is None:
+                        first_token_time = time.time()
+                        ttft_ms = (first_token_time - start_time) * 1000
+                        events.request.fire(
+                            request_type="SSE_STREAM",
+                            name="Time-to-First-Token",
+                            response_time=ttft_ms,
+                            response_length=len(chunk)
+                        )
+                    token_count += 1
+
+            total_duration_ms = (time.time() - start_time) * 1000
+            
+            # Record total completion time
+            events.request.fire(
+                request_type="SSE_STREAM",
+                name="Time-to-Last-Token",
+                response_time=total_duration_ms,
+                response_length=token_count
+            )
+            response.success()
+```
+
+#### Running the Distributed Benchmark
+
+Execute Locust across multiple worker processes to simulate realistic traffic ramp-up curves:
+
+```bash
+# Run headless load test ramping from 1 to 100 concurrent users over 5 minutes
+locust -f load_test_llm.py \
+  --headless \
+  --users 100 \
+  --spawn-rate 5 \
+  --run-time 5m \
+  --host http://localhost:8000
+```
+
+---
+
+### 3 Common Bottlenecks Discovered During Load Tests
+
+#### 1. Reverse Proxy Connection Exhaustion
+
+- **Symptom:** As concurrent users reach 150, the reverse proxy (Nginx, Envoy, or Traefik) begins returning HTTP 502 Bad Gateway errors.
+- **Root Cause:** Standard proxy configurations default to small worker connection pools (`worker_connections 1024`). When 150 users hold open 5-second streaming connections, ephemeral ports and socket descriptors exhaust.
+- **Fix:** Increase reverse proxy worker connection limits and enable HTTP/2 or HTTP/3 multiplexing.
+
+#### 2. Vector Database IOPS & Connection Pool Exhaustion
+
+- **Symptom:** TTFT spikes from 300ms to 4,000ms under load, while generation speed remains unchanged.
+- **Root Cause:** Concurrent requests exhaust connection pools to Pinecone, Qdrant, or PostgreSQL pgvector. Threads sit waiting for an available database connection before semantic retrieval can even begin.
+- **Fix:** Implement connection pooling with PgBouncer or scale vector read replicas.
+
+#### 3. GPU KV Cache Preemption (Self-Hosted vLLM)
+
+- **Symptom:** In self-hosted clusters, generation throughput suddenly drops to near-zero as concurrency climbs.
+- **Root Cause:** GPU VRAM is exhausted by active KV cache blocks. The serving engine is forced to swap KV blocks to CPU RAM or preempt active sequences.
+- **Fix:** Configure `max_num_seqs` and `gpu_memory_utilization` parameters in vLLM to bound maximum concurrency to physical VRAM limits.
+
+---
+
+### Executive Checklist for CTOs
+
+1. **Establish the Concurrency Saturation Point:** Determine the exact number of concurrent streaming users your cluster can support before TTFT exceeds 1,000ms.
+2. **Test Graceful Degradation:** Verify that when concurrency exceeds capacity, the system returns clean HTTP 429 responses with `Retry-After` headers rather than crashing backend services.
+3. **Benchmark Before Every Major Release:** Integrate automated load tests into your staging environment to detect performance regressions before deploying new model checkpoints or prompt revisions.
+

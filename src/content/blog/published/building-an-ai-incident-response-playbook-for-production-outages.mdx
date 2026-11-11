@@ -1,0 +1,101 @@
+---
+title: "Building an AI Incident Response Playbook for Production Outages"
+description: "When an AI feature fails, standard rebooting does not fix it. Learn how to build an incident response playbook for prompt regressions, outages, and loops."
+date: "2026-11-12"
+author: "Rajat Debnath"
+category: "AI Observability & MLOps"
+tags: ["Incident Response", "Site Reliability", "Outages", "SRE", "Production Operations"]
+readTime: "5 min read"
+---
+
+When traditional web infrastructure experiences a major incident—such as a database deadlock or memory leak—the Site Reliability Engineering (SRE) playbook is well established: restart the pod, roll back the recent deployment, or scale up replica pools. Within minutes, the system recovers.
+
+When a production generative AI system fails, traditional incident response tactics fail. 
+
+An AI incident rarely manifests as a hard server crash. Instead, it surfaces as subtle, destructive failure modes:
+- **Catastrophic Hallucination Regressions:** A minor prompt update or provider checkpoint shift causes the model to start fabricating customer account numbers or contract clauses.
+- **Provider API Brownouts:** The primary model provider experiences elevated error rates (HTTP 529 Overloaded), causing cascading timeouts across background worker queues.
+- **Runaway Agent Loops:** An autonomous tool-calling agent enters an unhandled recursion loop, triggering thousands of unauthorized third-party API mutations.
+- **Prompt Injection Exploitations:** An adversarial user discovers an injection vector that leaks internal system prompts and customer documents.
+
+To protect enterprise trust and restore service rapidly, engineering teams must establish an **AI Incident Response Playbook** with clear severity tiers, automated containment actions, and rapid remediation protocols.
+
+---
+
+### AI Incident Severity Classification
+
+```
+[Severity Level Matrix for AI Production Incidents]
+
+SEV-1 (Critical - Immediate Executive Escalation):
+- Data Leakage: Cross-tenant document retrieval detected in RAG.
+- Security Breach: Prompt injection executing unauthorized tool mutations.
+- Total Provider Outage: Primary model provider down with no active fallback.
+
+SEV-2 (High - 30-Minute Response SLA):
+- Cost Spike: Token burn rate exceeding 400% of rolling hourly baseline.
+- Hallucination Spike: User negative feedback exceeding 20% on core workflows.
+- Latency Degradation: P95 Time-to-First-Token (TTFT) exceeding 4,000 ms.
+
+SEV-3 (Medium - 4-Hour Response SLA):
+- Minor Schema Parsing Errors: Pydantic validation failures exceeding 5%.
+- Semantic Cache Hit Rate Drop: Cache efficiency dropping below 40%.
+```
+
+---
+
+### Step-by-Step Response Protocols
+
+#### 1. Immediate Automated Containment (The "Kill Switch")
+
+When a SEV-1 incident is triggered (e.g., active prompt injection or cross-tenant leakage), the on-call engineer must not spend 30 minutes diagnosing code. The immediate priority is containment.
+
+Maintain feature-flag kill switches in LaunchDarkly or Redis that can disable autonomous tool calling or downgrade features to static rules instantly:
+
+```python
+# Emergency feature kill switch check
+async def is_ai_feature_safe_to_execute(feature_name: str, tenant_id: str) -> bool:
+    emergency_lock = await redis_client.get(f"killswitch:ai:{feature_name}")
+    if emergency_lock == b"ACTIVE":
+        # Feature disabled globally: Return graceful maintenance notice
+        raise ServiceUnavailableException(
+            "This AI capability is temporarily undergoing scheduled maintenance. Please try again shortly."
+        )
+    return True
+```
+
+Tripping the kill switch stops ongoing data exfiltration or runaway token spend in under 500 milliseconds.
+
+#### 2. Provider Outage Failover Protocol
+
+If your primary provider reports service degradation:
+1. **Verify External Status:** Check status pages (status.openai.com, status.anthropic.com) to confirm the issue is external rather than internal network connectivity.
+2. **Trip the Model Router:** Flip the AI gateway router to secondary models (e.g., rerouting from OpenAI GPT-4o to Anthropic Claude 3.5 Sonnet on AWS Bedrock).
+3. **Notify Customer Success:** Update your in-app status banner informing users that generation speeds may temporarily vary while secondary models absorb traffic.
+
+#### 3. Prompt Regression Rollback Protocol
+
+Prompt changes must be version-controlled in Git or a dedicated prompt registry (such as Langfuse or Pezzo) with immutable semantic version tags (`prompt:v2.4.1`).
+
+If a prompt update introduces hallucinations or fails structured output parsing:
+- **Instant Version Pin Rollback:** Do not re-run full CI/CD deployment pipelines. Flip the gateway configuration pointer back to the previous stable prompt version (`prompt:v2.4.0`) via database configuration.
+- **Log Failed Traces for Regression Testing:** Pull the trace IDs of every query executed during the regression window and add them to your permanent CI evaluation suite.
+
+---
+
+### Post-Mortem and Root Cause Analysis (RCA)
+
+Within 48 hours of resolving an AI incident, the engineering team must publish a blameless post-mortem covering four specific AI operational questions:
+- **Detection Lag:** How many minutes elapsed between the first user experiencing the failure and the on-call engineer being paged?
+- **Deterministic vs. Probabilistic Root Cause:** Was the failure caused by deterministic software (buggy SQL, bad parser, unhandled timeout) or probabilistic model behavior (divergent reasoning, edge-case prompt)?
+- **Evaluation Coverage Gap:** Why did our pre-deployment CI evaluation benchmark fail to catch this regression before production release?
+- **Remediation Action Item:** What automated guardrail, schema constraint, or test case has been merged into the codebase to permanently prevent recurrence?
+
+---
+
+### Production Readiness Checklist for Engineering Leads
+
+1. **Verify On-Call Pager Routing:** Ensure alerts from your AI gateway (error rates, token velocity, latency) route directly to PagerDuty or Opsgenie.
+2. **Document Kill-Switch Commands:** Maintain a clear, tested runbook in your team wiki detailing the exact CLI commands or dashboard toggles to disable features during an emergency.
+3. **Conduct Quarterly AI Fire Drills:** Simulate an upstream provider outage in staging once every quarter to ensure newly hired engineers know how to execute failover and rollback protocols calmly.
+

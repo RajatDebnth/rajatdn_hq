@@ -1,0 +1,113 @@
+---
+title: "How to Scale AI Agents with 100+ Tools: Dynamic Tool Selection and Retrieval"
+description: "Dumping 100 tool schemas into your agent's context window degrades accuracy and blows up token costs. Learn how to dynamically retrieve tools with vector search."
+date: "2026-11-12"
+category: "Agent Architecture"
+tags:
+  - "Tool Retrieval"
+  - "Semantic Search"
+  - "AI Agents"
+  - "Context Window Optimization"
+  - "Scalability"
+featured: false
+---
+
+When building a simple AI agent, managing tools is easy. You define five to ten functions—such as `check_weather`, `lookup_user`, or `send_email`—and attach their complete JSON schemas to the model prompt.
+
+However, as you expand an enterprise agent to support dozens of SaaS integrations (Salesforce, Zendesk, Jira, Stripe, GitHub, internal ERPs), the number of available tools quickly grows to 50, 100, or even 500 functions.
+
+At that scale, static tool registration breaks down completely:
+- Injecting 100 tool schemas consumes 15,000+ tokens of context before the user even types a single word, exploding API costs.
+- The language model becomes overwhelmed by semantic choices, suffering from "tool confusion" and frequently picking incorrect or hallucinated functions.
+
+To scale AI agents to hundreds of enterprise tools, software teams must implement **Dynamic Tool Retrieval** (also known as Tool RAG). Here is how it works.
+
+```
+┌────────────────────────────────────────────────────────┐
+│ Dynamic Tool Retrieval Pipeline (Tool RAG)             │
+│                                                        │
+│ [Tool Registry: 250+ Enterprise Tools & Schemas]       │
+│                           │                            │
+│                           ▼                            │
+│        [Embed Tool Descriptions into Vector Store]     │
+│                           │                            │
+│                           ▼                            │
+│ [User Request: "Pull the latest Q3 invoice for Acme"]  │
+│                           │                            │
+│                           ▼                            │
+│   [Semantic Vector Search: Retrieve Top 4 Tools]       │
+│   Matches: `search_invoices`, `get_customer_id`, etc.  │
+│                           │                            │
+│                           ▼                            │
+│ [Inject ONLY Matching 4 Schemas into Active Prompt]    │
+│  └── 95% Token Savings / Zero Tool Selection Confusion │
+└────────────────────────────────────────────────────────┘
+```
+
+## Why Static Tool Registration Hits a Wall
+
+Modern foundation models support native function calling, but their tool reasoning capabilities degrade rapidly as the candidate pool expands:
+
+- **Context Window Inflation**: A thorough JSON schema with nested arguments and docstrings averages 150 to 250 tokens per tool. Registering 100 tools burns 20,000 prompt tokens on every single turn, inflating latency and cost.
+- **Attention Distraction**: When presented with hundreds of schemas, models suffer from distraction. A query mentioning "invoices" might inadvertently trigger an inventory tool instead of a billing tool because both share similar keywords.
+- **Provider Payload Limits**: Commercial LLM APIs enforce hard limits on the total size of the `tools` array parameter, causing API requests to be rejected if schemas exceed memory thresholds.
+
+## The Solution: Tool RAG (Retrieving Tools Like Documents)
+
+Just as RAG retrieves relevant document chunks based on user intent, **Tool RAG** retrieves only the relevant tool schemas needed for the active conversation turn:
+
+1. **Tool Indexing**: Treat every tool's name, description, and usage examples as an individual document. Generate an embedding for each tool and index it in an in-memory vector store (such as FAISS, Chroma, or Qdrant).
+2. **Intent Matching**: When the user submits a message, compute its embedding and perform a nearest-neighbor vector search against your tool registry.
+3. **Dynamic Prompt Assembly**: Retrieve only the top 3 to 6 highest-scoring tools and bind exclusively those schemas to the active LLM request.
+
+To the language model, it appears as though only four tools exist in the entire universe, eliminating confusion and slashing prompt token size by 90%.
+
+```python
+# Dynamic tool retrieval pattern using vector similarity
+from typing import List
+
+class ToolRegistry:
+    def __init__(self, vector_store):
+        self.vector_store = vector_store
+        self.tool_definitions = {}
+
+    def register_tool(self, name: str, description: str, schema: dict):
+        self.tool_definitions[name] = schema
+        # Index semantic description in vector store
+        self.vector_store.add_document(
+            id=name,
+            text=f"Tool: {name}. Purpose: {description}",
+            metadata={"tool_name": name}
+        )
+
+    def retrieve_active_tools(self, user_message: str, top_k: int = 4) -> List[dict]:
+        # Semantic search across tool catalog
+        matches = self.vector_store.similarity_search(user_message, top_k=top_k)
+        active_schemas = []
+        for match in matches:
+            tool_name = match.metadata["tool_name"]
+            active_schemas.append(self.tool_definitions[tool_name])
+        return active_schemas
+```
+
+## Hierarchical Tool Categorization and Namespaces
+
+For massive enterprise systems with hundreds of specialized APIs, simple vector search alone may occasionally miss subtle dependencies (for example, retrieving `process_refund` without retrieving the prerequisite `lookup_transaction_id` tool).
+
+Enhance retrieval using **Hierarchical Tool Routing**:
+
+- **Domain Categorization**: Group tools into logical domains (e.g., `billing`, `crm`, `devops`, `hr`).
+- **Two-Stage Routing**:
+  - Stage 1: A lightweight classifier model identifies the target domain based on the user's conversation context.
+  - Stage 2: Retrieve the top 5 tools within that specific domain partition, ensuring prerequisite lookup tools are always included.
+
+## Caching and Context Continuity in Multi-Turn Chats
+
+In multi-turn conversations, user intent can shift rapidly across steps:
+- If a user says *"Now send that report to Sarah"*, the query is too short for standalone tool retrieval.
+- **Keep Warm Tools**: Retain the tools called in the previous two conversation turns inside the active tool schema array, ensuring the agent maintains conversational continuity without dropping context.
+
+## Key Takeaway
+
+Do not dump your entire API catalog into your agent's system prompt. By indexing tool docstrings in vector stores and dynamically injecting only the top relevant schemas per turn, engineering teams can scale agents to hundreds of enterprise tools while keeping costs low and accuracy high.
+

@@ -1,0 +1,146 @@
+---
+title: "Building Usage-Based Pricing and Credit Systems for AI Features"
+description: "Flat-rate pricing kills AI margins while pure usage billing creates customer invoice anxiety. Discover how to build hybrid credit-based pricing in Stripe."
+date: "2026-11-12"
+author: "Rajat Debnath"
+category: "AI Product Engineering"
+tags: ["Pricing Strategy", "Usage-Based Billing", "FinOps", "Stripe", "B2B SaaS"]
+readTime: "5 min read"
+---
+
+Pricing generative AI features is one of the most contentious debates inside modern B2B SaaS startups. 
+
+If you offer **Unlimited Flat-Rate Pricing** (e.g., $49 per user/month with unlimited AI generation), high-volume power users automate complex tasks, running hundreds of thousands of tokens that destroy your gross margins and turn profitable accounts negative.
+
+Conversely, if you charge **Pure Metered API Pricing** (e.g., billing customers $0.003 per 1k tokens), enterprise buyers refuse to sign contracts. Enterprise procurement and finance teams despise unpredictable variable bills that fluctuate unpredictably every month, creating severe "invoice anxiety".
+
+The industry standard model adopted by leading AI products (such as Cursor, Notion, and Midjourney) is **The Hybrid Credit-Based Pricing Model**: customers pay a predictable monthly base fee that includes an allocated bucket of monthly AI credits, with automatic options to purchase top-up credit packs or enable capped overages.
+
+---
+
+### The Anatomy of an AI Credit Engine
+
+Instead of exposing raw token mechanics or dollar micro-charges to end-users, abstract AI consumption into user-friendly **Credits**:
+
+```
+[User Action in SaaS App]
+  - Simple Document Summary ===> Costs 1 Credit ($0.01 real cost)
+  - Deep Multi-Doc Synthesis ===> Costs 5 Credits ($0.06 real cost)
+  - Code Execution Sandbox   ===> Costs 10 Credits ($0.12 real cost)
+
+[Credit Ledger Service (PostgreSQL + Redis)]
+  - Tenant Balance: 500 / 500 Credits Included in Monthly $99 Plan
+  - Transaction: Deducts 5 Credits atomically
+  - Remaining Balance: 495 Credits
+
+[Credit Exhaustion Workflow]
+  If Balance == 0:
+    - Option A: Auto-refill credit pack ($20 for 1,000 credits via Stripe)
+    - Option B: Graceful downgrade to slower / smaller model (GPT-4o-mini)
+    - Option C: Block feature until next billing cycle rollover
+```
+
+This model provides customers with predictable monthly software budgeting while protecting SaaS companies from runaway API costs.
+
+---
+
+### Step-by-Step Implementation with Stripe and Redis
+
+#### 1. Defining the In-App Credit Multiplier
+
+Map user-facing operations to discrete credit costs based on historical token benchmarks and target 75% gross margins:
+
+```python
+ACTION_CREDIT_MATRIX = {
+    "quick_qa": 1,           # Small prompt + fast model (Cost: $0.002)
+    "document_extract": 3,   # Medium prompt + structured output (Cost: $0.008)
+    "deep_audit": 10,        # Multi-document RAG + frontier model (Cost: $0.035)
+    "agent_workflow": 25     # Iterative multi-step tool calling (Cost: $0.090)
+}
+```
+
+Notice that credit pricing builds in healthy 65% to 75% margins above direct model provider API expenses, accounting for underlying vector search, hosting, and engineering support costs.
+
+#### 2. Atomic Credit Reservation and Consumption in Redis
+
+To prevent race conditions where concurrent user sessions spend more credits than available, implement atomic credit checks using Redis Lua scripts:
+
+```lua
+-- Atomic Credit Deduction Script in Redis
+local tenant_key = KEYS[1]
+local deduction = tonumber(ARGV[1])
+
+local current_balance = tonumber(redis.call('get', tenant_key) or '0')
+
+if current_balance >= deduction then
+    local new_balance = redis.call('decrby', tenant_key, deduction)
+    return {1, new_balance} -- Success: 1, New Balance
+else
+    return {0, current_balance} -- Failure: 0, Insufficient Balance
+end
+```
+
+In Python, execute the deduction before dispatching LLM calls:
+
+```python
+async def deduct_ai_credits(tenant_id: str, action: str) -> bool:
+    required_credits = ACTION_CREDIT_MATRIX.get(action, 1)
+    key = f"credits:tenant:{tenant_id}"
+    
+    # Run atomic Lua script
+    success, balance = await redis_client.eval(
+        LUA_DEDUCTION_SCRIPT, 
+        keys=[key], 
+        args=[required_credits]
+    )
+    
+    if not success:
+        raise InsufficientCreditsException(
+            f"Insufficient credits for action '{action}'. Required: {required_credits}, Available: {balance}."
+        )
+        
+    return True
+```
+
+#### 3. Synchronizing Credit Rollovers with Stripe Webhooks
+
+Connect credit replenishment to customer billing lifecycles using Stripe subscription webhooks:
+
+```python
+# Stripe Webhook Handler for Subscription Invoices
+async def handle_stripe_webhook(event):
+    if event["type"] == "invoice.payment_succeeded":
+        invoice = event["data"]["object"]
+        customer_id = invoice["customer"]
+        
+        # Look up tenant and plan tier
+        tenant = await get_tenant_by_stripe_id(customer_id)
+        included_credits = PLAN_CREDIT_ALLOWANCE[tenant.plan_tier]
+        
+        # Reset monthly credit balance
+        await redis_client.set(f"credits:tenant:{tenant.id}", included_credits)
+        
+        # Log rollover audit record
+        await log_credit_transaction(
+            tenant.id, 
+            amount=included_credits, 
+            reason="monthly_plan_renewal"
+        )
+```
+
+---
+
+### Best Practices for Product Transparency
+
+- **Display Remaining Balance in Navigation:** Show an unobtrusive credit counter in the sidebar (e.g., "340 / 500 credits remaining"). Transparency eliminates user anxiety.
+- **Surface Cost Previews for Expensive Actions:** Before executing a heavy agent workflow that consumes 25 credits, prompt the user with a confirmation: `"This deep audit will consume 25 credits. Continue?"`
+- **Provide Automated Refill Toggles:** Allow workspace administrators to enable "Auto-Refill: Add $20 for 1,000 credits whenever balance falls below 50 credits" to prevent workflow interruptions.
+
+---
+
+### Strategic Takeaways for SaaS Founders
+
+- **Never Sell Raw Tokens:** Customers do not understand prompt versus completion tokens; sell business units of value (credits, reports, queries).
+- **Graceful Fallbacks Beat Hard Paywalls:** When starter users run out of credits, offer a fallback to a cheaper, slower model rather than blocking the product entirely.
+- **Protect Gross Margins Early:** Build your credit ledger before scaling past $20k MRR; converting users from "unlimited free AI" to paid credits post-launch is significantly more difficult than setting expectations from day one.
+

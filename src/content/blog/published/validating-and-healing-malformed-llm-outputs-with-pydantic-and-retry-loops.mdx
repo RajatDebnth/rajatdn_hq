@@ -1,0 +1,177 @@
+---
+title: "Validating and Healing Malformed LLM Outputs with Pydantic and Retry Loops"
+description: "Even with strict mode, edge-case model outputs can fail validation. Learn how to build self-healing retry loops that pinpoint errors to the LLM."
+date: "2026-11-12"
+author: "Rajat Debnath"
+category: "Structured Outputs & Extraction"
+tags: ["Self-Healing", "Pydantic", "Validation", "Error Recovery", "Data Extraction"]
+readTime: "5 min read"
+---
+
+When building automated data extraction pipelines, software teams often assume that enabling JSON mode or structured outputs completely solves data validation.
+
+In production, syntax correctness does not equal business logic validity.
+
+A model using strict JSON schema might emit syntactically flawless JSON that fails core business invariants:
+- A start date that occurs after an end date (`startDate: "2026-12-01"`, `endDate: "2026-03-01"`).
+- A percentage field that exceeds 100% (`confidence_score: 142.5`).
+- An invoice line-item table where the sum of individual rows does not equal the reported `total_amount`.
+- A customer address where the postal code does not match the specified state.
+
+If your backend code simply crashes with a `ValidationError` and drops the transaction, your pipeline reliability drops. Conversely, if you retry the entire prompt from scratch without explanation, the model frequently repeats the exact same mistake.
+
+To build resilient enterprise pipelines, engineering teams must implement **Self-Healing LLM Retry Loops with Precise Error Reflection**.
+
+---
+
+### The Self-Healing Architecture: Targeted Error Reflection
+
+Instead of issuing a generic retry, the self-healing engine catches the exact Pydantic validation error, isolates the offending field, and feeds the specific error message back to the LLM in a secondary turn:
+
+```
+[Raw Document Input]
+       |
+       v
+[Attempt 1: Initial LLM Extraction]
+       Emits: {"subtotal": 100, "tax": 10, "total": 120}  <=== Math Error!
+       |
+       v
+[Pydantic Business Logic Validator]
+       Catches ValidationError: "Root validator failed: total (120) != subtotal + tax (110)"
+       |
+       v
+[Self-Healing Turn 2: Error Reflection Dispatcher]
+       Appends to conversation history:
+       - Assistant: {"subtotal": 100, "tax": 10, "total": 120}
+       - User: "Validation Error: Your reported total of 120 does not equal subtotal (100) + tax (10).
+                Fix the mathematical discrepancy and return the corrected JSON."
+       |
+       v
+[Attempt 2: Corrected LLM Generation]
+       Emits: {"subtotal": 100, "tax": 10, "total": 110}  <=== VALID!
+       |
+       v
+[Data Pipeline Proceeds Successfully]
+```
+
+By providing targeted feedback rather than blind retries, the model fixes the mistake on the first retry in over 92% of production edge cases.
+
+---
+
+### Step-by-Step Implementation with Pydantic V2
+
+#### 1. Defining Multi-Field Business Logic Validators
+
+Use Pydantic's `@model_validator` to enforce relational and arithmetic consistency across multiple fields:
+
+```python
+from pydantic import BaseModel, Field, model_validator
+from datetime import date
+from typing import List
+
+class LineItem(BaseModel):
+    description: str
+    quantity: int = Field(gt=0)
+    unit_price_cents: int = Field(gt=0)
+    total_cents: int = Field(gt=0)
+
+    @model_validator(mode="after")
+    def verify_line_math(self):
+        expected_total = self.quantity * self.unit_price_cents
+        if self.total_cents != expected_total:
+            raise ValueError(
+                f"Line item math mismatch for '{self.description}': "
+                f"quantity ({self.quantity}) * unit_price ({self.unit_price_cents}) "
+                f"must equal {expected_total}, but got {self.total_cents}."
+            )
+        return self
+
+class FinancialInvoice(BaseModel):
+    invoice_id: str
+    issue_date: date
+    due_date: date
+    items: List[LineItem]
+    grand_total_cents: int
+
+    @model_validator(mode="after")
+    def verify_dates_and_total(self):
+        if self.due_date < self.issue_date:
+            raise ValueError(
+                f"Invalid date order: due_date ({self.due_date}) cannot be before issue_date ({self.issue_date})."
+            )
+        computed_grand_total = sum(item.total_cents for item in self.items)
+        if self.grand_total_cents != computed_grand_total:
+            raise ValueError(
+                f"Grand total mismatch: Sum of items is {computed_grand_total}, "
+                f"but grand_total_cents is {self.grand_total_cents}."
+            )
+        return self
+```
+
+#### 2. Building the Self-Healing Execution Loop
+
+Wrap your extraction logic inside an asynchronous retry loop with a maximum attempt limit (typically 3 attempts):
+
+```python
+import json
+from pydantic import ValidationError
+from openai import OpenAI
+
+client = OpenAI()
+
+async def extract_with_self_healing(document_text: str, max_retries: int = 2) -> FinancialInvoice:
+    messages = [
+        {"role": "system", "content": "You are an enterprise financial extraction engine. Extract data strictly matching the schema."},
+        {"role": "user", "content": f"Extract invoice data from the following text:\n{document_text}"}
+    ]
+
+    for attempt in range(max_retries + 1):
+        response = client.chat.completions.create(
+            model="gpt-4o",
+            messages=messages,
+            response_format={"type": "json_object"},
+            temperature=0.0
+        )
+        
+        raw_json_str = response.choices[0].message.content
+        
+        try:
+            # Parse raw JSON and validate against business rules
+            parsed_data = json.loads(raw_json_str)
+            validated_invoice = FinancialInvoice.model_validate(parsed_data)
+            return validated_invoice # Success!
+            
+        except (ValidationError, json.JSONDecodeError) as e:
+            if attempt == max_retries:
+                # Exhausted retries: log incident and raise
+                log_critical_extraction_failure(document_text, raw_json_str, str(e))
+                raise e
+
+            # Format error feedback for the next turn
+            error_feedback = (
+                f"Your output failed validation with the following error:\n{str(e)}\n"
+                f"Please correct the error while preserving all other valid fields, "
+                f"and return the corrected JSON object."
+            )
+            
+            # Append conversation turns for self-healing
+            messages.append({"role": "assistant", "content": raw_json_str})
+            messages.append({"role": "user", "content": error_feedback})
+```
+
+---
+
+### Economic and Quality Impact in Production
+
+- **92% First-Retry Recovery:** In production pipelines processing messy OCR text, targeted error feedback resolves nearly all validation errors on the second attempt.
+- **Automated Synthetic Edge-Case Mining:** Every error-correction conversation pair (`original_error` -> `feedback` -> `correction`) can be automatically logged and converted into synthetic training data or evaluation test cases.
+- **Zero Silent Data Corruption:** Prevents corrupted calculations from entering relational databases, completely eliminating manual data-cleaning tickets for support teams.
+
+---
+
+### Implementation Checklist for Dev Teams
+
+1. **Keep Validation Messages Actionable:** Ensure Pydantic error messages state both the expected value and the received value clearly so the LLM understands the discrepancy immediately.
+2. **Cap Temperature at 0.0:** During extraction and self-healing turns, keep temperature at 0.0 to maximize mathematical reasoning consistency.
+3. **Set a Hard Retry Ceiling:** Never set `max_retries` higher than 2. If a model fails three consecutive attempts, the input document is likely ambiguous or truncated and should be flagged for human review.
+

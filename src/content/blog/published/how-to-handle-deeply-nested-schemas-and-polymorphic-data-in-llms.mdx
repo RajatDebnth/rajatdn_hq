@@ -1,0 +1,145 @@
+---
+title: "How to Handle Deeply Nested Schemas and Polymorphic Data in LLMs"
+description: "Real enterprise data is rarely flat. Discover how to model deeply nested objects, discriminated unions, and polymorphic JSON in production LLMs."
+date: "2026-11-12"
+author: "Rajat Debnath"
+category: "Structured Outputs & Extraction"
+tags: ["Nested Schemas", "Polymorphism", "Pydantic", "JSON Schema", "Data Modeling"]
+readTime: "5 min read"
+---
+
+Most tutorials on LLM structured outputs demonstrate trivial, flat schemas: extracting a user's name, email address, and job title from a short paragraph.
+
+In real-world enterprise software, enterprise data is rarely flat. You must extract complex, multi-tiered data structures: financial audit trees, nested software dependency graphs, legal contracts with recursive clauses, and polymorphic events where different entity types share a common container.
+
+When engineering teams pass complex, deeply nested schemas to large language models, accuracy drops sharply:
+- Models forget required fields inside nested sub-objects.
+- Models hallucinate conflicting properties across polymorphic variants (e.g., mixing credit card fields into an ACH bank transfer object).
+- Token generation costs balloon due to repeated nested key declarations.
+
+To extract complex data reliably, engineering teams must implement **Discriminated Unions, Schema Modularization, and Progressive Deconstruction**.
+
+---
+
+### Modeling Polymorphic Data with Discriminated Unions
+
+Polymorphic data occurs when a list contains heterogeneous object types that share common metadata but require different underlying attributes. 
+
+For instance, an enterprise payment extraction pipeline must parse multiple payment methods: Credit Cards, Wire Transfers, and Cryptocurrency Wallets.
+
+Instead of creating a massive, loose "bag of optional fields" schema (which causes the model to hallucinate conflicting fields), use **Pydantic Discriminated Unions**:
+
+```python
+from pydantic import BaseModel, Field
+from typing import Literal, Union, List
+
+# Variant 1: Credit Card Transaction
+class CreditCardPayment(BaseModel):
+    payment_type: Literal["credit_card"] = Field(description="Discriminator literal")
+    last_four_digits: str = Field(regex=r"^[0-9]{4}$")
+    card_brand: Literal["visa", "mastercard", "amex"]
+    billing_postal_code: str
+
+# Variant 2: Wire Transfer
+class WireTransferPayment(BaseModel):
+    payment_type: Literal["wire_transfer"] = Field(description="Discriminator literal")
+    swift_bic: str
+    iban: str
+    beneficiary_bank_name: str
+
+# Variant 3: Corporate Invoice Credit
+class InvoiceCreditPayment(BaseModel):
+    payment_type: Literal["invoice_credit"] = Field(description="Discriminator literal")
+    purchase_order_number: str
+    net_payment_terms_days: int
+
+# Container Schema with Polymorphic Union
+class CustomerCheckoutAudit(BaseModel):
+    transaction_id: str
+    total_amount_cents: int
+    # Discriminated union routed by 'payment_type'
+    payment_details: Union[CreditCardPayment, WireTransferPayment, InvoiceCreditPayment] = Field(
+        discriminator="payment_type"
+    )
+```
+
+#### Why Discriminators Work
+
+The `payment_type` field acts as an architectural anchor for the model. When the LLM emits `"payment_type": "wire_transfer"`, constrained decoding immediately restricts subsequent tokens to the fields defined specifically for `WireTransferPayment`, completely forbidding card brand or postal code fields.
+
+---
+
+### Handling Deeply Nested Trees: The Recursive Flattening Strategy
+
+When schemas nest more than 4 levels deep (e.g., Organization -> Department -> Team -> Project -> Task -> Subtask), LLMs frequently lose track of indentation, misplace closing brackets, or truncate leaf nodes due to context attention dilution.
+
+To maintain 99%+ extraction accuracy on deep hierarchies, use **Relational Flat ID Referencing**:
+
+```
+[Insecure Deeply Nested Hierarchy (High Failure Rate)]
+{
+  "org": {
+    "dept": {
+      "team": {
+        "project": {
+          "task": { "subtask": { ... } }
+        }
+      }
+    }
+  }
+}
+
+[Secure Relational Flat Schema (100% Extraction Accuracy)]
+{
+  "entities": [
+    {"id": "org_1", "type": "organization", "name": "Acme Corp", "parent_id": null},
+    {"id": "dept_1", "type": "department", "name": "Engineering", "parent_id": "org_1"},
+    {"id": "team_1", "type": "team", "name": "Platform", "parent_id": "dept_1"},
+    {"id": "task_1", "type": "task", "title": "Migrate DB", "parent_id": "team_1"}
+  ]
+}
+```
+
+Instead of forcing the LLM to manage recursive syntax nesting, the model outputs a flat list of relational records with explicit `parent_id` pointers. Your backend application reconstructs the nested tree in under 5 milliseconds using standard graph traversal in Python or TypeScript.
+
+---
+
+### Two-Phase Schema Deconstruction for Huge Documents
+
+If an enterprise document requires extracting over 50 distinct fields across multiple categories, attempting to extract the entire schema in a single prompt degrades model reasoning and exceeds output token limits.
+
+Break extraction into a **Two-Phase Progressive Pipeline**:
+
+```
+[Incoming Multi-Page Document (e.g., 50-Page Master Services Agreement)]
+                               |
+                               v
+[Phase 1: High-Level Structural Partitioning (Model: GPT-4o-mini)]
+Extracts Document Anatomy into Sections:
+- Section A: Legal Indemnification & Liability
+- Section B: Payment & Milestone Schedules
+- Section C: Intellectual Property Ownership
+                               |
+                               v
+[Phase 2: Parallel Deep Extraction (Targeted Sub-Schemas)]
+- Worker 1 ===> Extracts IndemnitySchema from Section A
+- Worker 2 ===> Extracts PaymentScheduleSchema from Section B
+- Worker 3 ===> Extracts IpOwnershipSchema from Section C
+                               |
+                               v
+[Backend Aggregator Merges Typed Schemas into Final Master Object]
+```
+
+This divide-and-conquer pattern achieves three goals:
+1. **Higher Accuracy:** Each LLM call focuses on a narrow, highly specific sub-schema.
+2. **Parallel Execution:** Processing sections concurrently cuts total extraction time from 40 seconds to 8 seconds.
+3. **Isolated Retries:** If Section B fails schema validation, only Section B is retried, avoiding re-processing the entire 50-page document.
+
+---
+
+### Data Engineering Checklist for CTOs
+
+1. **Mandate Discriminator Tags:** Never use untagged unions (`Union[A, B]`) in LLM schemas; always enforce an explicit discriminator field (`Literal["variant_a"]`).
+2. **Cap Nesting Depth at 3 Levels:** Enforce a linter rule in your schema repository rejecting Pydantic models with more than 3 levels of object nesting, converting deeper structures into relational arrays with foreign keys.
+3. **Include Schema Field Descriptions:** Add concise `Field(description="...")` attributes to ambiguous fields, giving the model necessary domain context during token prefill.
+

@@ -1,0 +1,120 @@
+---
+title: "How to Build Event-Driven LLMs with Change Data Capture and Webhooks"
+description: "Move beyond chat interfaces. Learn how to trigger autonomous LLM workflows from database mutations using Change Data Capture, Kafka, and webhooks."
+date: "2026-11-12"
+category: "Event-Driven AI"
+tags:
+  - "Change Data Capture"
+  - "Event-Driven AI"
+  - "Webhooks"
+  - "PostgreSQL"
+  - "Autonomous Workflows"
+featured: false
+---
+
+Most generative AI implementations in enterprise software are strictly conversational: a human user sits in front of a chat box, types a query, and waits synchronously for the language model to respond.
+
+While conversational assistants are useful, the most transformative enterprise AI applications are **event-driven and autonomous**. They do not wait for a human to type a prompt. Instead, they react asynchronously to state changes occurring across your core databases and business software:
+- When an enterprise customer submits a negative NPS score in PostgreSQL, an agent automatically summarizes their historical tickets, flags churn risk, and alerts the account executive in Slack.
+- When an invoice status flips to `DISPUTED` in Stripe, an agent cross-checks contract terms and drafts a dispute resolution memo for finance review.
+- When a software bug is logged in GitHub, an agent parses the stack trace, identifies the failing commit, and suggests a regression test.
+
+Building proactive AI systems requires connecting LLMs to asynchronous event streams. Here is how modern software teams architect event-driven LLMs using Change Data Capture (CDC) and webhooks.
+
+```
+┌────────────────────────────────────────────────────────┐
+│ Event-Driven Autonomous LLM Architecture               │
+│                                                        │
+│ [Primary PostgreSQL Database]                          │
+│            │ (Row Insert / Update on `support_tickets`)│
+│            ▼                                           │
+│ [Change Data Capture: Debezium / WAL2JSON]             │
+│            │                                           │
+│            ▼                                           │
+│ [Event Stream Broker: Apache Kafka / AWS SQS]          │
+│            │                                           │
+│            ▼                                           │
+│ [Event Filter & Policy Router Worker]                  │
+│  ├── Is Ticket Severity == "CRITICAL"? ──► Enqueue AI  │
+│  └── Minor Update? ──► Drop / Ignore                   │
+│            │                                           │
+│            ▼                                           │
+│ [Asynchronous Agent Worker: Fetches Context & Executes]│
+│            │                                           │
+│            ▼                                           │
+│ [Automated Action Dispatched: Slack / Jira / Email]    │
+└────────────────────────────────────────────────────────┘
+```
+
+## What is Change Data Capture (CDC)?
+
+Change Data Capture (CDC) is a software design pattern that monitors and captures low-level row mutations—inserts, updates, and deletes—directly from a database's Write-Ahead Log (WAL), streaming those events in real time to downstream services.
+
+Instead of writing custom application code to fire webhooks on every controller action, CDC listens directly to the database engine (such as PostgreSQL or MySQL). This guarantees zero missed events, even if data is modified via direct SQL migrations, background cron jobs, or third-party webhooks.
+
+## Why Polling Databases for AI Workflows Fails
+
+Many teams start by running scheduled cron jobs that poll the database every five minutes: `SELECT * FROM tickets WHERE status = 'new' AND ai_processed = false`.
+
+At scale, database polling introduces three fatal operational bottlenecks:
+- **Database Lock Contention**: Running repeated table scans on high-traffic transactional tables increases CPU load and locks rows needed by live customer web requests.
+- **High Latency Windows**: A user or system must wait up to five minutes for the cron schedule to trigger, defeating real-time operational response requirements.
+- **Race Conditions**: If multiple cron workers run simultaneously, they may process the exact same row twice, generating duplicate AI summaries or redundant external notifications.
+
+## Step 1: Capturing Mutations with Debezium and Kafka
+
+The production standard for capturing relational database mutations is **Debezium** running on top of Apache Kafka or AWS Kinesis:
+
+- **PostgreSQL WAL Streaming**: Debezium connects to PostgreSQL's native logical decoding replication slot (`pgoutput`), reading row-level mutations as binary stream events without impacting query performance.
+- **Standardized Event Payloads**: Mutations are serialized into structured JSON envelopes containing both the `before` and `after` state of the modified row:
+
+```json
+{
+  "op": "u",
+  "source": {"table": "customer_accounts"},
+  "before": {"account_id": "acc_1092", "health_score": 85},
+  "after": {"account_id": "acc_1092", "health_score": 38},
+  "timestamp": 1731378120
+}
+```
+
+## Step 2: Filtering and Deduplication Before Triggering the LLM
+
+Language models are computationally expensive. You must never invoke an LLM on every raw database event (such as updating an `updated_at` timestamp):
+
+- **Event Filtering Rules**: Write lightweight, programmatic filter rules that evaluate row deltas. For example, trigger the AI agent only if `after.health_score < 40` and `before.health_score >= 40`.
+- **Deduplication Windows with Redis**: If a customer's record is updated ten times within two minutes, apply a Redis-based debouncing window. Wait for state to settle before firing a single, consolidated AI workflow.
+
+```python
+# Event consumer triggering asynchronous agent workflow
+def handle_cdc_event(event_payload: dict):
+    # Only process updates to ticket status
+    if event_payload["op"] != "u" or event_payload["source"]["table"] != "tickets":
+        return
+        
+    before = event_payload["before"]
+    after = event_payload["after"]
+    
+    # Check if severity escalated to high/critical
+    if after["priority"] == "CRITICAL" and before["priority"] != "CRITICAL":
+        ticket_id = after["id"]
+        # Enqueue background AI triage task
+        ai_agent_queue.enqueue(
+            "triage_critical_ticket",
+            ticket_id=ticket_id,
+            customer_id=after["customer_id"],
+            description=after["description"]
+        )
+```
+
+## Step 3: Asynchronous Worker Execution and Telemetry
+
+When an event passes filtering, dispatch the task to an asynchronous worker pool (Celery, Temporal, or AWS Lambda):
+- **Dynamic Context Gathering**: The agent worker queries relevant RAG vector stores (e.g., retrieving the customer's active contract terms and past escalated tickets).
+- **Execution and Alerting**: The agent evaluates the issue, determines next steps, and dispatches external notifications or triggers automated remediation APIs.
+- **Idempotency Guarantees**: Tag every event-driven workflow with the Kafka message offset or event UUID to ensure that network retries never trigger duplicate agent actions.
+
+## Key Takeaway
+
+The future of enterprise software belongs to proactive, event-driven AI. By coupling relational database Change Data Capture (CDC) with event filtering and asynchronous worker queues, engineering teams transform passive chatbots into autonomous systems that react to critical business events in real time.
+

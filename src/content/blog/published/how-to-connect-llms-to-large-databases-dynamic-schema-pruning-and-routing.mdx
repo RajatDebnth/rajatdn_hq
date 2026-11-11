@@ -1,0 +1,120 @@
+---
+title: "How to Connect LLMs to Large Databases: Dynamic Schema Pruning and Routing"
+description: "Enterprise databases with 200+ tables blow up LLM context windows. Learn how to dynamically prune table schemas using vector retrieval and metadata catalogs."
+date: "2026-11-12"
+category: "Data Infrastructure"
+tags:
+  - "Schema Pruning"
+  - "Text-to-SQL"
+  - "Metadata Catalog"
+  - "Context Optimization"
+  - "Enterprise Data"
+featured: false
+---
+
+In textbook Text-to-SQL demonstrations, the database schema is trivial: a clean `users` table and an `orders` table with ten total columns. Developers simply dump the entire Data Definition Language (DDL) string into the system prompt, and the language model writes a clean query.
+
+In real-world enterprise databases, this static approach fails immediately. Enterprise databases and data warehouses (PostgreSQL, Snowflake, BigQuery) frequently contain 150 to 500 tables, thousands of cryptic column names, dozens of legacy foreign key relationships, and automated migration artifacts.
+
+Attempting to inject hundreds of table definitions into a prompt causes severe operational bottlenecks:
+- It consumes 25,000+ tokens of context before the user query is even evaluated, driving up API bills and latency.
+- Models experience severe "schema distraction," joining unrelated tables or hallucinating columns from deprecated schemas.
+
+Connecting an LLM to a large enterprise database requires **Dynamic Schema Pruning and Routing**. Here is how modern software teams implement it.
+
+```
+┌────────────────────────────────────────────────────────┐
+│ Dynamic Schema Pruning & Retrieval Pipeline            │
+│                                                        │
+│ [Database Catalog: 350 Tables & DDL Definitions]       │
+│                           │                            │
+│                           ▼                            │
+│ [Vector Index of Table Summaries & Key Business Logic] │
+│                           │                            │
+│                           ▼                            │
+│ [User Query: "What is average monthly recurring rev?"] │
+│                           │                            │
+│                           ▼                            │
+│ [Semantic Search: Retrieve Top 3 Relevant Tables]      │
+│  Matched: `subscriptions`, `plans`, `invoices`         │
+│                           │                            │
+│                           ▼                            │
+│ [Inject ONLY Pruned DDL + Relationships into Prompt]   │
+│  └── 95% Token Savings / Zero Schema Distraction       │
+│                           │                            │
+│                           ▼                            │
+│ [Accurate, Focused SQL Generated on First Turn]        │
+└────────────────────────────────────────────────────────┘
+```
+
+## Why Dumping Massive Database Schemas Fails
+
+Language models have large context windows, but context capacity does not equal reasoning accuracy:
+
+- **The Needle in a Haystack Penalty**: When a model is given 200 table definitions, finding the three specific tables needed to calculate a metric degrades in precision. The model frequently latches onto old legacy tables (e.g., querying `orders_old_v1` instead of `dim_orders`).
+- **Cryptic Enterprise Naming**: Enterprise databases are littered with abbreviated column names like `cd_stat_flg` or `usr_tx_amt` that lack natural semantic meaning without documentation.
+- **Runaway Token Costs**: If every database query transmits 30,000 tokens of static DDL, running 1,000 queries per day consumes hundreds of millions of prompt tokens, destroying product unit economics.
+
+## Step 1: Building an Enriched Metadata Catalog
+
+You cannot prune schemas effectively without rich metadata. Raw database DDL (`CREATE TABLE ...`) only provides names and data types, omitting business context.
+
+Construct an **Enriched Metadata Catalog**:
+- For each table, store its name, human-readable business description, primary keys, explicit foreign key links, and 3 representative sample rows.
+- Annotate ambiguous column abbreviations with plain-English definitions (e.g., `"rev_rec_amt: Revenue recognized in accordance with ASC 606 rules"`).
+
+```json
+{
+  "table_name": "fact_customer_subscriptions",
+  "business_description": "Stores active and historical customer SaaS subscription lifecycles, MRR, and renewal dates.",
+  "primary_key": "subscription_id",
+  "foreign_keys": [
+    {"column": "customer_id", "references": "dim_customers.customer_id"}
+  ],
+  "frequently_joined_tables": ["dim_customers", "dim_plans"],
+  "sample_columns": ["status", "monthly_recurring_revenue", "started_at"]
+}
+```
+
+## Step 2: Semantic Table Retrieval (Schema RAG)
+
+Treat table schemas exactly like document chunks in a RAG pipeline:
+
+1. **Embed Table Profiles**: Generate vector embeddings for each table's business description and column catalog, storing them in an in-memory vector index (such as FAISS or Qdrant).
+2. **Retrieve Candidate Tables**: When a user asks a question, embed their prompt and perform a similarity search to retrieve the top 3 to 5 most relevant table profiles.
+3. **Graph-Based Relationship Expansion**: If the search retrieves `fact_invoices` and `dim_customers`, inspect your relational catalog graph. If a joining bridge table exists (e.g., `link_customer_accounts`), automatically include it in the active context even if it was not explicitly mentioned in the user's prompt.
+
+```python
+# Semantic schema pruning pattern
+def get_pruned_schema_for_query(user_query: str, vector_store, metadata_catalog):
+    # 1. Semantic search across table business descriptions
+    matched_tables = vector_store.similarity_search(user_query, top_k=3)
+    table_names = {match.metadata["table_name"] for match in matched_tables}
+    
+    # 2. Relationship expansion: include mandatory foreign key join tables
+    expanded_tables = set(table_names)
+    for table in table_names:
+        related = metadata_catalog.get_foreign_key_relationships(table)
+        expanded_tables.update(related)
+        
+    # 3. Assemble compact DDL for ONLY the selected tables
+    pruned_ddl = [metadata_catalog.get_table_ddl(t) for t in expanded_tables]
+    return "\n\n".join(pruned_ddl)
+```
+
+## Step 3: Column-Level Pruning for Wide Tables
+
+Many enterprise tables (such as Salesforce objects or ERP tables) feature over 100 columns on a single table. Sending all 100 columns is unnecessary when the question only involves customer name and contract value:
+- Run a secondary semantic or lexical filter across the column descriptions of the selected tables.
+- Inject the full DDL for core primary and foreign keys, but include only the top 10 most semantically relevant attribute columns, shrinking the schema payload by another 70%.
+
+## Handling Ambiguous Column Formats with Golden Few-Shot Examples
+
+Along with the pruned schema, inject two or three relevant golden SQL examples into the prompt:
+- Maintain a repository of verified query examples (e.g., how your data team calculates "Net Revenue Retention" or handles timestamp time zones).
+- Retrieve the closest golden SQL example using vector search and attach it to the prompt. This provides the LLM with a concrete template for complex joins and aggregations.
+
+## Key Takeaway
+
+Do not overwhelm language models with massive DDL dumps. By building an enriched metadata catalog, retrieving candidate tables via semantic search, and expanding foreign key relationships dynamically, engineering teams connect LLMs to 500-table enterprise databases with high accuracy and minimal token burn.
+

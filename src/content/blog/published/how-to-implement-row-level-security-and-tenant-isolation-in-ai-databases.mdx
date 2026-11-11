@@ -1,0 +1,177 @@
+---
+title: "How to Implement Row-Level Security and Tenant Isolation in AI Databases"
+description: "LLM metadata filters can fail under adversarial attacks. Learn how PostgreSQL Row-Level Security (RLS) and pgvector enforce hard tenant isolation."
+date: "2026-11-12"
+author: "Rajat Debnath"
+category: "Security & Authentication"
+tags: ["RBAC", "Row Level Security", "RAG", "Enterprise Security", "Access Control"]
+readTime: "5 min read"
+---
+
+In multi-tenant B2B SaaS applications, data isolation is the single most critical compliance hurdle. Enterprise customers will not adopt an AI tool if there is even a theoretical possibility that an employee from Company B could retrieve intellectual property, confidential compensation data, or customer records belonging to Company A.
+
+In naive RAG implementations, multi-tenancy is handled purely at the application layer: developers add a `WHERE tenant_id = 'org_123'` clause to SQL queries or pass `{"tenant_id": "org_123"}` as a metadata dictionary filter to a vector database.
+
+Relying solely on application-level filtering is dangerous. A minor developer bug, an omitted filter in an asynchronous pipeline, a flawed semantic cache, or a prompt injection tricking an automated SQL generator can cause the application to omit the tenant clause, triggering an catastrophic cross-tenant data breach.
+
+To establish defense-in-depth, security-conscious engineering teams delegate tenant isolation directly to the database engine using **PostgreSQL Row-Level Security (RLS)** with **pgvector**.
+
+---
+
+### Why Database-Native Isolation Beats Application Filters
+
+When security is enforced at the database level, the database management system (DBMS) itself evaluates tenant boundaries on every single query plan before returning results:
+
+```
+[Application Layer]
+User Request (Tenant: org_42)
+       |
+       | 1. Connects to Postgres & Sets Session Variable:
+       |    SET LOCAL app.current_tenant_id = 'org_42';
+       v
+[PostgreSQL Database Engine with pgvector]
+       |
+       | 2. Incoming Query:
+       |    SELECT document_text FROM document_embeddings 
+       |    ORDER BY embedding <=> query_vector LIMIT 5;
+       |
+       | 3. Row-Level Security (RLS) Kernel Interceptor:
+       |    Automatically rewrites query to enforce policy:
+       |    AND tenant_id = current_setting('app.current_tenant_id')
+       v
+[Query Execution Engine]
+Physically incapable of reading or returning rows where tenant_id != 'org_42'.
+```
+
+Even if an AI agent generates raw SQL that omits the tenant filter, or a developer forgets to add a where clause in their vector search code, PostgreSQL guarantees that the query cannot see rows belonging to any other tenant.
+
+---
+
+### Step-by-Step Implementation with PostgreSQL & pgvector
+
+#### 1. Designing the Multi-Tenant Vector Schema
+
+Create a table that pairs vector embeddings with strict foreign-key tenant references and an Access Control List (ACL) array:
+
+```sql
+-- Enable vector extension
+CREATE EXTENSION IF NOT EXISTS vector;
+
+-- Multi-tenant document embeddings table
+CREATE TABLE document_embeddings (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+    document_id UUID NOT NULL,
+    chunk_content TEXT NOT NULL,
+    embedding vector(1536) NOT NULL,
+    allowed_roles TEXT[] NOT NULL DEFAULT ARRAY['member'],
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Fast HNSW index for vector cosine similarity search
+CREATE INDEX idx_document_embeddings_hnsw 
+ON document_embeddings 
+USING hnsw (embedding vector_cosine_ops);
+
+-- B-tree index on tenant_id for composite filtering
+CREATE INDEX idx_document_embeddings_tenant 
+ON document_embeddings(tenant_id);
+```
+
+#### 2. Enabling Row-Level Security and Defining Security Policies
+
+By default, RLS is disabled in PostgreSQL. Once enabled, no queries can read or modify rows unless an explicit policy grants permission:
+
+```sql
+-- Enable Row-Level Security
+ALTER TABLE document_embeddings ENABLE ROW LEVEL SECURITY;
+
+-- Enforce RLS for table owners and service connections as well
+ALTER TABLE document_embeddings FORCE ROW LEVEL SECURITY;
+
+-- Define tenant isolation policy using session configuration variables
+CREATE POLICY tenant_isolation_policy ON document_embeddings
+    FOR ALL
+    USING (
+        tenant_id = NULLIF(current_setting('app.current_tenant_id', true), '')::UUID
+    )
+    WITH CHECK (
+        tenant_id = NULLIF(current_setting('app.current_tenant_id', true), '')::UUID
+    );
+```
+
+The `USING` clause prevents reading rows from other tenants, while the `WITH CHECK` clause prevents accidentally inserting rows assigned to a different tenant.
+
+#### 3. Setting Session Context in Application Connection Pools
+
+In your backend application (Node.js, Python, or Go), wrap database queries inside a transaction that sets the session variable before executing vector searches:
+
+```python
+from asyncpg import Connection
+
+async def search_tenant_documents(
+    conn: Connection,
+    tenant_id: str,
+    query_vector: list[float],
+    top_k: int = 5
+) -> list[dict]:
+    # Execute within an atomic transaction
+    async with conn.transaction():
+        # Set transaction-scoped tenant context (automatically clears on commit/rollback)
+        await conn.execute(
+            "SET LOCAL app.current_tenant_id = $1", 
+            tenant_id
+        )
+        
+        # Query vector embeddings without needing manual WHERE tenant_id clauses
+        rows = await conn.fetch(
+            """
+            SELECT id, chunk_content, 1 - (embedding <=> $1) AS similarity
+            FROM document_embeddings
+            ORDER BY embedding <=> $1 ASC
+            LIMIT $2
+            """,
+            query_vector,
+            top_k
+        )
+        return [dict(r) for r in rows]
+```
+
+Using `SET LOCAL` guarantees that the variable applies only to the current transaction, preventing connection pool poisoning when database connections are reused across different customer requests.
+
+---
+
+### Combining Tenant Isolation with Role-Based Access Control (RBAC)
+
+In enterprise environments, multi-tenancy is only half the battle. You must also ensure that within Company A, junior engineers cannot retrieve executive payroll documents.
+
+Extend the PostgreSQL RLS policy to cross-reference the user's role claims:
+
+```sql
+-- Advanced Policy: Tenant Isolation + Role-Based Access Control
+CREATE POLICY tenant_and_role_policy ON document_embeddings
+    FOR SELECT
+    USING (
+        tenant_id = NULLIF(current_setting('app.current_tenant_id', true), '')::UUID
+        AND (
+            allowed_roles && string_to_array(current_setting('app.current_user_roles', true), ',')
+        )
+    );
+```
+
+Before executing the search, the backend sets both the tenant and the comma-separated user roles:
+```sql
+SET LOCAL app.current_tenant_id = 'org_42';
+SET LOCAL app.current_user_roles = 'engineering,member';
+```
+
+If a document requires the `executive` role, PostgreSQL's array overlap operator (`&&`) evaluates to false, and the record is excluded from the query plan before vector distance calculation occurs.
+
+---
+
+### Enterprise Compliance and Performance Checklist
+
+1. **Verify Index Performance:** Ensure composite queries filter efficiently. Pairing HNSW vector indexes with filtered attributes in Postgres 16+ ensures RLS filters do not cause full-table sequential scans.
+2. **Prevent Connection Bleed:** Always use `SET LOCAL` inside explicit transactions rather than global `SET` commands, eliminating the risk of session state persisting on pooled database connections.
+3. **Automate Penetration Testing in CI:** Include automated unit tests that attempt cross-tenant vector retrieval with adversarial tenant IDs, asserting that queries return zero records under all conditions.
+

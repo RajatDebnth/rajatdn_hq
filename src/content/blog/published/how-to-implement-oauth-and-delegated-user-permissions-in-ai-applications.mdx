@@ -1,0 +1,164 @@
+---
+title: "How to Implement OAuth 2.0 and Delegated User Permissions in AI Applications"
+description: "AI agents accessing enterprise APIs must not share static API keys. Discover how to implement user-delegated OAuth 2.0 with scoped tokens and secure vaults."
+date: "2026-11-12"
+author: "Rajat Debnath"
+category: "Security & Authentication"
+tags: ["OAuth 2.0", "AI Agents", "API Security", "Least Privilege", "Token Management"]
+readTime: "5 min read"
+---
+
+When building autonomous AI agents that interact with external services—such as Google Workspace, GitHub, Slack, or Jira—many early-stage startups implement the quickest path to integration: they configure a single shared service account with broad administrative API keys.
+
+In this naive pattern, the AI agent uses the same backend credential to fetch calendar invites, read emails, and update issue trackers for every employee across the company. 
+
+This architecture is a major security vulnerability. A single prompt injection or hallucinated tool call can cause the AI agent to read executive emails, delete production repositories, or leak sensitive board decks to unauthorized staff. Furthermore, enterprise IT and InfoSec departments will immediately block vendor adoption during SOC 2 and ISO 27001 vendor reviews if individual user actions cannot be attributed to specific human credentials.
+
+To ship compliant enterprise AI products, software teams must implement **OAuth 2.0 Delegated User Authorization** (the On-Behalf-Of pattern). Instead of using shared service keys, the AI agent must operate strictly using scoped, short-lived tokens granted directly by the authenticated end-user.
+
+---
+
+### The Architecture: User-Delegated AI Token Vault
+
+Under user delegation, the AI agent possesses zero ambient authority. It can only execute actions on third-party APIs if the individual human user has explicitly authorized those permissions via an OAuth 2.0 consent screen:
+
+```
+[User Browser]
+       | 1. Initiates OAuth Flow ("Connect Google Drive")
+       v
+[Authorization Server (Google / Microsoft / GitHub)]
+       | 2. User Grants Granular Scopes (e.g., drive.readonly)
+       | 3. Returns Auth Code
+       v
+[Backend OAuth Exchange Engine]
+       | 4. Exchanges Code for Refresh Token + Access Token
+       v
+[Encrypted Token Vault (HashiCorp Vault / AWS KMS + Postgres)]
+       | Stores: {user_id, provider, encrypted_refresh_token, active_access_token}
+       |
+       | 5. Ephemeral Token Ingestion at Execution Time
+       v
+[AI Tool Execution Runtime]
+       | Injects Bearer Token into HTTP Client
+       v
+[Target Enterprise API (Google Drive API)]
+       Enforces exact user permissions and logs audit trail under user's identity.
+```
+
+If User A does not have access to an internal Google Doc, the Google Drive API returns an HTTP 403 Forbidden to the AI agent, providing hard cryptographic boundary enforcement that cannot be bypassed by clever prompt manipulation.
+
+---
+
+### Step-by-Step Implementation
+
+#### 1. Enforcing Least-Privilege OAuth Scopes
+
+Enterprise users and IT administrators reject AI integrations that demand full administrative control. When registering your OAuth app, request only read-only or narrow functional scopes:
+
+```python
+# OAuth configuration requesting minimal required permissions
+OAUTH_CONFIG = {
+    "google": {
+        "client_id": os.environ["GOOGLE_CLIENT_ID"],
+        "client_secret": os.environ["GOOGLE_CLIENT_SECRET"],
+        "authorize_url": "https://accounts.google.com/o/oauth2/v2/auth",
+        "token_url": "https://oauth2.googleapis.com/token",
+        # Request narrow, read-only permissions rather than full drive access
+        "scopes": [
+            "https://www.googleapis.com/auth/drive.readonly",
+            "https://www.googleapis.com/auth/calendar.events.readonly"
+        ]
+    }
+}
+```
+
+By requesting `drive.readonly` rather than `drive`, you mathematically guarantee that even if an AI agent hallucinates a file deletion command, the Google API will reject the request.
+
+#### 2. Storing Tokens in an Encrypted Token Vault
+
+OAuth tokens must never sit unencrypted in application database tables. Use envelope encryption with AWS KMS or HashiCorp Vault to safeguard credentials at rest:
+
+```python
+from cryptography.fernet import Fernet
+import os
+
+ENCRYPTION_KEY = os.environ["TOKEN_VAULT_ENCRYPTION_KEY"].encode()
+cipher_suite = Fernet(ENCRYPTION_KEY)
+
+async def store_user_tokens(user_id: str, provider: str, token_payload: dict):
+    # Encrypt refresh token before database persistence
+    encrypted_refresh = cipher_suite.encrypt(token_payload["refresh_token"].encode()).decode()
+    
+    await db.execute(
+        """
+        INSERT INTO user_oauth_tokens (user_id, provider, access_token, refresh_token_enc, expires_at)
+        VALUES ($1, $2, $3, $4, $5)
+        ON CONFLICT (user_id, provider) DO UPDATE SET
+            access_token = EXCLUDED.access_token,
+            refresh_token_enc = EXCLUDED.refresh_token_enc,
+            expires_at = EXCLUDED.expires_at
+        """,
+        user_id, provider, token_payload["access_token"], encrypted_refresh, token_payload["expires_at"]
+    )
+```
+
+#### 3. Ephemeral Token Injection at Tool Execution Time
+
+When an autonomous LLM agent decides to invoke an external tool (such as searching a user's calendar), the tool handler dynamically retrieves and refreshes the user's personal token:
+
+```python
+import httpx
+import time
+
+async def get_valid_access_token(user_id: str, provider: str) -> str:
+    record = await db.fetchrow(
+        "SELECT access_token, refresh_token_enc, expires_at FROM user_oauth_tokens WHERE user_id = $1 AND provider = $2",
+        user_id, provider
+    )
+    if not record:
+        raise ValueError(f"User has not connected their {provider} account.")
+    
+    # Check if access token is expired (or expires in less than 60 seconds)
+    if time.time() > record["expires_at"] - 60:
+        decrypted_refresh = cipher_suite.decrypt(record["refresh_token_enc"].encode()).decode()
+        new_tokens = await refresh_oauth_token(provider, decrypted_refresh)
+        await store_user_tokens(user_id, provider, new_tokens)
+        return new_tokens["access_token"]
+        
+    return record["access_token"]
+
+# Tool called by LLM agent
+async def search_user_calendar(query: str, current_user_id: str):
+    token = await get_valid_access_token(current_user_id, "google")
+    
+    async with httpx.AsyncClient() as client:
+        response = await client.get(
+            "https://www.googleapis.com/calendar/v3/events",
+            headers={"Authorization": f"Bearer {token}"},
+            params={"q": query, "maxResults": 5}
+        )
+        return response.json()
+```
+
+Notice that the tool execution logic requires `current_user_id`. The LLM cannot specify which user account to query; the identity is bound to the authenticated session context.
+
+---
+
+### Security Benefits of Delegated User Authentication
+
+Adopting this delegated architecture provides four immediate security and operational benefits:
+
+- **Inherited Access Control Lists (ACLs):** If a user is removed from a shared Google Shared Drive or downgraded in Jira, the AI agent instantly loses access without requiring manual synchronization of internal permissions.
+- **Accurate Audit Attribution:** In enterprise compliance logs (e.g., Google Workspace Admin Console or GitHub Audit Log), API calls show as executed on behalf of `alice@company.com`, maintaining complete auditability.
+- **Defending Against Cross-Tenant Poisoning:** An attacker cannot use an AI agent to read data belonging to other tenants because the agent simply does not possess credentials outside the calling user's authorized scope.
+- **Revocability:** End-users can revoke access at any time directly through their third-party provider security dashboard without breaking application functionality for other users.
+
+---
+
+### Enterprise Deployment Checklist
+
+Before launching AI agent integrations to production users:
+1. **Mandate PKCE for Mobile and SPA Flows:** Use Proof Key for Code Exchange (RFC 7636) to prevent authorization code interception attacks.
+2. **Handle Revocation Gracefully:** Implement webhook listeners for provider de-authorization events so your system cleans up expired records immediately.
+3. **Never Expose Tokens to LLM Context:** Ensure OAuth access tokens and refresh tokens are strictly consumed by backend HTTP clients and never placed into LLM prompts or memory buffers.
+

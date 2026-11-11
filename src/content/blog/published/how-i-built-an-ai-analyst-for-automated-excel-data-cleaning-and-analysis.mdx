@@ -66,14 +66,20 @@ An automated AI Excel Analyst combines deterministic data engineering with proba
 
 ## Why Raw Spreadsheet Ingestion Fails in Production
 
-Passing uncleaned workbooks directly to an LLM introduces three major operational bottlenecks:
+Passing uncleaned workbooks directly to an LLM introduces severe operational bottlenecks across cost, reliability, speed, and privacy:
 
-| Evaluation Metric | Raw Spreadsheet to LLM | Hybrid Profiler + LLM (Our Approach) |
-| :--- | :--- | :--- |
-| **Token Consumption** | 20,000+ tokens per 1,000 rows | Under 800 tokens for entire workbook |
-| **Schema Reliability** | Frequent formatting hallucinations | 100% deterministic type coercion |
-| **Processing Speed** | 15–45s prompt latency | Sub-second cleaning, rapid inference |
-| **Data Privacy** | Raw row values exposed to API | Only aggregated metrics and masked samples |
+- **Token Consumption**:
+  - **Raw Spreadsheet to LLM**: Consumes 20,000+ tokens per 1,000 rows, exhausting context limits and creating runaway API bills.
+  - **Hybrid Profiler + LLM**: Compresses the dataset into structured statistical summaries, keeping the total payload under 800 tokens for the entire workbook.
+- **Schema Reliability**:
+  - **Raw Spreadsheet to LLM**: Prone to syntax hallucinations, broken column alignments, and dropped rows during JSON extraction.
+  - **Hybrid Profiler + LLM**: Guarantees 100% deterministic type coercion and schema enforcement using Python data validation before invoking the LLM.
+- **Processing Speed & Latency**:
+  - **Raw Spreadsheet to LLM**: 15–45 seconds of round-trip prompt latency as the foundation model parses thousands of repetitive cell tokens.
+  - **Hybrid Profiler + LLM**: Sub-second deterministic cleaning and profiling in Python, followed by rapid LLM inference on compact summaries.
+- **Data Privacy & Compliance**:
+  - **Raw Spreadsheet to LLM**: Exposes raw row-level customer, employee, or financial records directly to third-party model endpoints.
+  - **Hybrid Profiler + LLM**: Retains raw records inside your private local environment, transmitting only aggregated distributions and masked statistical profiles.
 
 ## Building the Pipeline with Python and Gemini
 

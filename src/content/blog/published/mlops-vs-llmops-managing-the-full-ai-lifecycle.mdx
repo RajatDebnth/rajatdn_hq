@@ -1,0 +1,108 @@
+---
+title: "MLOps vs. LLMOps: How to Manage the Full Lifecycle of Live AI Systems"
+description: "Understand the core architectural and operational differences between traditional MLOps and modern LLMOps, from feature stores to vector databases and prompt CI/CD."
+date: "2026-11-11"
+category: "Production AI"
+tags:
+  - "MLOps"
+  - "LLMOps"
+  - "Architecture"
+  - "DevOps"
+featured: false
+---
+
+Over the past decade, software engineering teams mastered MLOps: the discipline of training tabular models, managing feature stores, tracking weights in MLflow, and deploying scikit-learn or PyTorch containers. However, teams that attempt to manage foundation models and generative AI systems using traditional MLOps playbooks quickly find themselves stranded. By reading this guide, you will understand the fundamental operational differences between MLOps and LLMOps and how to build a unified deployment lifecycle for live AI systems.
+
+## What is it?
+
+While both disciplines share the goal of operating dependable machine learning systems in production, their technical primitives and lifecycle bottlenecks are fundamentally different across five core operational dimensions:
+
+- **Primary Artifact**:
+  - **Traditional MLOps**: Custom model weights and serialized computation graphs (`PyTorch`, `ONNX`, `TensorFlow`).
+  - **Modern LLMOps**: Version-controlled system prompts, RAG retrieval context, and schema-validated agent tools.
+- **Primary Data Store**:
+  - **Traditional MLOps**: Tabular feature stores (`Feast`, `Hopsworks`) serving real-time numerical and categorical features.
+  - **Modern LLMOps**: Vector databases (`Chroma`, `Pinecone`, `Qdrant`) indexed with semantic embeddings alongside document chunks.
+- **Training and Adaptation Requirement**:
+  - **Traditional MLOps**: Frequent full-model retraining or transfer learning pipelines triggered by data drift.
+  - **Modern LLMOps**: In-context learning via zero-shot/few-shot prompt engineering, prompt caching, or targeted parameter-efficient fine-tuning (`LoRA`, `QLoRA`).
+- **Latency Profile**:
+  - **Traditional MLOps**: Low single-digit to tens of milliseconds for predictive inference.
+  - **Modern LLMOps**: Hundreds of milliseconds to multiple seconds per completion stream for autoregressive token generation.
+- **Evaluation Methodology**:
+  - **Traditional MLOps**: Deterministic mathematical loss functions and classification metrics (`RMSE`, `F1-Score`, `ROC-AUC`).
+  - **Modern LLMOps**: Multi-factor RAG metrics (faithfulness, answer relevance, context recall) evaluated via deterministic heuristics and LLM-as-a-judge pipelines.
+
+```
+┌────────────────────────────────────────────────────────┐
+│ Traditional MLOps Lifecycle                            │
+│ [Raw Data] ──► [Feature Store] ──► [Train Model]       │
+│                     │                                  │
+│                     ▼                                  │
+│             [Deploy Artifact] ──► [F1 / ROC Metric]    │
+└────────────────────────────────────────────────────────┘
+
+┌────────────────────────────────────────────────────────┐
+│ Modern LLMOps Lifecycle                                │
+│ [Foundation Model] ──► [Prompt & Tool Registry]        │
+│       │                                                │
+│       ▼                                                │
+│ [Vector Store Context] ──► [CI/CD Evals & Tracing]     │
+└────────────────────────────────────────────────────────┘
+```
+
+## Why does it matter?
+
+Applying traditional MLOps assumptions to generative applications leads to misallocated resources and operational friction:
+
+- **Wasted Retraining Costs**: In traditional MLOps, keeping a model accurate requires scheduled retraining jobs on GPU clusters. In LLMOps, accuracy is maintained by refreshing vector search indexes and refining system prompts at a fraction of the cost.
+- **Inadequate Metric Tracking**: Traditional metrics like accuracy and F1-score cannot evaluate whether a chatbot hallucinated a refund policy or gave an overly defensive answer.
+- **Version Control Misalignment**: Managing prompts as informal strings inside application code rather than versioned, tested configuration artifacts leads to untracked production regressions.
+
+Adopting an LLMOps mindset ensures your operational tooling matches the non-deterministic realities of foundation models.
+
+## How does it work?
+
+A production LLMOps lifecycle replaces model weight management with prompt versioning and semantic evaluation:
+
+### 1. Versioned Prompt Registries
+Treat prompts like code. Maintain prompts in a versioned repository with explicit input variables and regression benchmarks.
+
+```python
+from dataclasses import dataclass
+
+@dataclass(frozen=True)
+class PromptVersion:
+    version: str
+    template: str
+    model_name: str
+    temperature: float
+
+# Prompts are immutable versioned artifacts
+V1_2_TRIAGE_PROMPT = PromptVersion(
+    version="v1.2.0",
+    template="You are a technical support triage assistant. Categorize the issue strictly as BUG, BILLING, or FEATURE.\n\nTicket: {ticket_text}",
+    model_name="gemini-2.5-flash",
+    temperature=0.0
+)
+```
+
+### 2. Retrieval-Augmented Data Pipelines
+Instead of maintaining expensive feature computation pipelines, LLMOps focuses on ingestion, chunking, and embedding generation into vector databases with metadata filtering.
+
+### 3. Continuous Evaluation (LLM-as-a-Judge)
+Automate quality tracking by running programmatic evaluation scripts that score live outputs against key dimensions:
+- **Faithfulness**: Is the answer derived strictly from retrieved context?
+- **Answer Relevance**: Did the answer address the user's specific intent without extraneous filler?
+
+## Business application
+
+Understanding the MLOps vs. LLMOps distinction allows enterprise technology leaders to build lean, dependable AI platforms without overspending on unnecessary GPU clusters.
+
+- **How I build this**: I establish version-controlled prompt registries, automated vector ingestion pipelines, and continuous evaluation suites that run alongside standard application CI/CD.
+- **How businesses get help**: Teams deploy generative AI features rapidly, reduce infrastructure spend by focusing on retrieval rather than retraining, and catch regressions before release.
+
+## Key takeaway
+
+Do not try to manage generative AI with yesterday's machine learning playbook. Replace model retraining loops with vector context management, prompt versioning, and continuous semantic evaluation.
+

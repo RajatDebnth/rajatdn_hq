@@ -27,7 +27,7 @@ function MarkdownPre({ children }: { children?: ReactNode }) {
 }
 
 const heading = "font-semibold tracking-tight text-[var(--foreground)]";
-const tableCell = "border-b border-[var(--line)] px-4 py-3 align-top";
+const tableCell = "border-b border-[var(--line)] px-3 sm:px-4 py-2 sm:py-3 align-top text-xs sm:text-sm";
 
 export const blogMdxComponents = {
   h2: ({ children }: { children?: ReactNode }) => <h2 className={`mb-3 mt-9 text-base sm:text-lg font-bold ${heading}`} id={idFromChildren(children)}>{children}</h2>,

@@ -1,0 +1,158 @@
+---
+title: "How to Implement Semantic Caching in Redis to Intercept Repetitive LLM Queries"
+description: "Traditional key-value caches fail on natural language variations. Learn how to build an in-memory vector semantic cache in Redis to cut token burn by 30%."
+date: "2026-11-12"
+category: "Data Infrastructure"
+tags:
+  - "Semantic Caching"
+  - "Redis"
+  - "Vector Search"
+  - "Cost Optimization"
+  - "Latency"
+featured: false
+---
+
+In enterprise SaaS applications—particularly internal knowledge bases, customer support chatbots, and IT helpdesk assistants—users frequently ask the exact same underlying questions using slightly different phrasing:
+- *"How do I connect my Slack account?"*
+- *"Where is the Slack integration setting?"*
+- *"Steps to link workspace with Slack?"*
+
+In traditional web development, engineering teams use exact-match key-value caching (e.g., standard Memcached or Redis key lookups) to cache expensive responses. However, because each of the prompts above is represented by a completely different string of characters, traditional caches report a 100% cache miss.
+
+The request bypasses the cache, invokes the LLM API, retrieves RAG context, and burns thousands of tokens answering a question the system already answered five minutes earlier.
+
+The modern engineering solution is **Semantic Caching**. By storing and querying prompt vector embeddings in Redis, the system detects conceptual similarity, intercepts semantically equivalent queries, and returns verified responses instantly at zero token cost.
+
+Here is how modern engineering teams build production semantic caches using Redis Stack.
+
+```
+┌────────────────────────────────────────────────────────┐
+│ Semantic Caching Lifecycle in Redis                    │
+│                                                        │
+│ [User Query: "Where do I update credit card info?"]    │
+│                           │                            │
+│                           ▼                            │
+│ [Compute Query Embedding via Fast Local Model: 10ms]   │
+│                           │                            │
+│                           ▼                            │
+│ [Query Redis Vector Search (HNSW Index in Memory)]     │
+│                           │                            │
+│     ┌─────────────────────┴─────────────────────┐      │
+│     ▼ Cosine Similarity >= 0.95                 ▼ Miss │
+│ [Instant Cache Hit!]                     [Call LLM API]│
+│ • Latency: 4ms                           • Cost: $$$   │
+│ • Cost: $0.00                            • Time: 1,800ms
+│ • Source: Verified Redis Value                  │      │
+│                                                 ▼      │
+│                                  [Write New Answer to  │
+│                                   Redis Semantic Cache]│
+└────────────────────────────────────────────────────────┘
+```
+
+## Exact Match vs. Semantic Vector Caching
+
+Traditional caching maps an exact string hash to a value: `MD5("Where is my invoice?") -> Response`.
+- Change a comma, add a typo, or rephrase a sentence, and the hash changes completely.
+
+**Semantic Caching** maps high-dimensional vector embeddings into an in-memory index:
+- When a query arrives, you generate its embedding.
+- You perform an approximate nearest-neighbor search across your Redis vector index.
+- If the cosine similarity distance between the incoming query and a previously cached query is above a strict confidence threshold (e.g., `similarity >= 0.95`), the system returns the cached answer.
+
+In customer-facing enterprise applications, semantic caching typically intercepts **20% to 35% of all incoming requests**, slashing monthly LLM API bills and dropping response latency from two seconds down to single-digit milliseconds.
+
+## Configuring Redis Stack for Vector Indexing
+
+Modern Redis (specifically Redis Stack with the RediSearch module) natively supports vector indexing and real-time similarity search:
+
+```python
+import redis
+from redis.commands.search.field import VectorField, TextField
+from redis.commands.search.index_definition import IndexDefinition, IndexType
+
+r = redis.Redis(host="localhost", port=6379, decode_responses=False)
+
+def init_semantic_cache_index():
+    index_name = "idx:semantic_cache"
+    try:
+        r.ft(index_name).info()
+        print("Semantic cache index already exists.")
+    except Exception:
+        # Define HNSW vector index in Redis
+        schema = (
+            TextField("prompt"),
+            TextField("response"),
+            VectorField(
+                "prompt_vector",
+                "HNSW",
+                {
+                    "TYPE": "FLOAT32",
+                    "DIM": 1536,          # Dimensions of embedding model
+                    "DISTANCE_METRIC": "COSINE"
+                }
+            )
+        )
+        r.ft(index_name).create_index(
+            schema,
+            definition=IndexDefinition(prefix=["cache:"], index_type=IndexType.HASH)
+        )
+        print("Created in-memory semantic cache index.")
+```
+
+## The Query Interception Loop
+
+Wrap your LLM service layer with a defensive cache check before dispatching API calls:
+
+```python
+import numpy as np
+from redis.commands.search.query import Query
+
+def query_with_semantic_cache(prompt: str, embedding_model, threshold: float = 0.95):
+    # 1. Generate query embedding
+    query_vector = np.array(embedding_model.embed(prompt), dtype=np.float32).tobytes()
+    
+    # 2. Query Redis for nearest vector match
+    q = Query("*=>[KNN 1 @prompt_vector $vec AS score]") \
+        .sort_by("score") \
+        .return_fields("prompt", "response", "score") \
+        .dialect(2)
+        
+    results = r.ft("idx:semantic_cache").search(q, query_params={"vec": query_vector})
+    
+    # 3. Check similarity threshold
+    if results.docs:
+        top_match = results.docs[0]
+        # In Redis cosine distance, 0 is identical, higher is dissimilar
+        cosine_distance = float(top_match.score)
+        similarity = 1.0 - cosine_distance
+        
+        if similarity >= threshold:
+            print(f"[CACHE HIT] Similarity: {similarity:.3f} | Matched: {top_match.prompt}")
+            return top_match.response
+            
+    # 4. Cache Miss: Call LLM API
+    llm_answer = call_llm_api(prompt)
+    
+    # 5. Asynchronously persist new verified response to Redis (TTL 24 hours)
+    cache_key = f"cache:{hash(prompt)}"
+    r.hset(cache_key, mapping={
+        "prompt": prompt,
+        "response": llm_answer,
+        "prompt_vector": query_vector
+    })
+    r.expire(cache_key, 86400) # Expire after 1 day
+    
+    return llm_answer
+```
+
+## Preventing Semantic Drift and False Positives
+
+Setting the similarity threshold requires balancing hit rate against accuracy:
+- **Too Loose (`threshold < 0.90`)**: The cache might return an answer for a subtly different question (e.g., treating *"How do I cancel my plan?"* as identical to *"How do I pause my plan?"*).
+- **The Sweet Spot (`0.94 to 0.97`)**: Guarantees that only true rephrasings match.
+- **Tenant Isolation**: Always prefix cache keys and filter vector queries by `tenant_id` to ensure customer data is never shared across tenants in multi-tenant SaaS.
+
+## Key Takeaway
+
+Stop paying repeatedly for answers your system has already computed. By deploying an in-memory semantic cache in Redis with calibrated cosine similarity thresholds, engineering teams intercept up to a third of production queries, reducing API token costs while delivering instant 5ms responses.
+

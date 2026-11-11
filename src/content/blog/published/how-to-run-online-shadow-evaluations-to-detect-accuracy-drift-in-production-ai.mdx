@@ -1,0 +1,114 @@
+---
+title: "How to Run Online Shadow Evaluations to Detect Accuracy Drift in Production AI"
+description: "Offline benchmarks miss real-world user shifts. Learn how to run asynchronous online shadow evaluations on production traffic to catch accuracy decay."
+date: "2026-11-12"
+category: "LLMOps"
+tags:
+  - "Shadow Evaluation"
+  - "Accuracy Drift"
+  - "Production AI"
+  - "LLMOps"
+  - "Observability"
+featured: false
+---
+
+In traditional machine learning, models suffer from covariate shift and concept drift as real-world distributions evolve. The same vulnerability affects generative AI applications: an AI assistant that scored a 94% accuracy rating on pre-launch benchmark datasets can quietly experience severe accuracy decay once live in production.
+
+Why does production accuracy decay?
+- Real-world users submit questions with unexpected vocabulary, novel edge cases, and changing corporate topics not represented in your static benchmark dataset.
+- Upstream foundation model providers (OpenAI, Anthropic, Google) deploy silent checkpoint optimizations and safety updates that subtly alter reasoning behaviors.
+- Internal company documentation evolves, introducing contradictory statements that cause retrieval hallucinations.
+
+Relying solely on static offline test suites leaves your engineering team blind to real-time performance degradation.
+
+To maintain high accuracy, production engineering teams implement **Online Shadow Evaluations**. Here is how to monitor real-time AI accuracy without adding user-facing latency.
+
+```
+┌────────────────────────────────────────────────────────┐
+│ Online Asynchronous Shadow Evaluation Architecture     │
+│                                                        │
+│ [Live User Query & Production Response Streamed]       │
+│                           │                            │
+│           ┌───────────────┴───────────────┐            │
+│           ▼ User Path                     ▼ Shadow Path│
+│ [Render Output to User Instantly]  [Sample 5% of Logs] │
+│ (Zero Latency Added to Client)            │            │
+│                                           ▼            │
+│                              [Enqueue to Async Worker] │
+│                                           │            │
+│                                           ▼            │
+│                              [Evaluate via LLM Judge]  │
+│                              • Faithfulness Score      │
+│                              • Context Relevance       │
+│                              • Hallucination Rate      │
+│                                           │            │
+│                                           ▼            │
+│                              [Push to Metrics Dashboard]│
+│                               (Trigger Alert if < 0.85)│
+└────────────────────────────────────────────────────────┘
+```
+
+## Why Offline Benchmarks Cannot Catch Production Decay
+
+Offline golden datasets are essential for pre-merge CI/CD checks, but they suffer from three structural limitations:
+- **Static Invariant Bias**: A golden dataset of 200 questions reflects only what your team understood at the time of authoring. It cannot anticipate novel user behaviors or new product features launched last week.
+- **Volume Mismatch**: Testing 200 synthetic questions in CI cannot capture the statistical diversity of 100,000 real customer interactions.
+- **Provider Drift**: Commercial model providers regularly patch weights under existing model names (e.g., `gpt-4o`), subtly changing how the model interprets system prompts.
+
+## The Architecture of Asynchronous Shadow Evaluations
+
+Running real-time evaluation directly in the user-facing request loop is impossible: having an LLM judge evaluate an answer before showing it to the user would double latency and double API costs.
+
+The solution is an **Asynchronous Shadow Evaluation Pipeline**:
+
+1. **Non-Blocking Telemetry**: When a user request finishes, stream the completed completion to the user immediately. Simultaneously, emit an asynchronous telemetry event containing the user query, retrieved context chunks, and generated response to an event queue (e.g., AWS SQS, Kafka, or Celery).
+2. **Statistical Traffic Sampling**: Evaluating 100% of live traffic with an expensive frontier model would inflate operating bills. Instead, sample a statistically significant subset—typically 3% to 5% of production requests.
+3. **Asynchronous Judge Worker**: A pool of background workers pulls sampled traces from the queue and evaluates them against the RAG Triad (Context Relevance, Groundedness, Answer Relevance) using a calibrated judge model.
+4. **Time-Series Metric Ingestion**: Output scores to a time-series monitoring dashboard (Datadog, Prometheus, or Langfuse).
+
+```python
+# Asynchronous shadow evaluation worker
+import random
+
+def should_sample_for_evaluation(sample_rate: float = 0.05) -> bool:
+    return random.random() < sample_rate
+
+def log_and_sample_production_request(query: str, context_chunks: list[str], answer: str):
+    # Only sample 5% of production traffic to control evaluation spend
+    if should_sample_for_evaluation(sample_rate=0.05):
+        shadow_eval_queue.enqueue(
+            "run_shadow_eval",
+            payload={
+                "query": query,
+                "context": context_chunks,
+                "answer": answer,
+                "timestamp": get_current_timestamp()
+            }
+        )
+
+# Executed in background worker
+def process_shadow_eval_job(payload: dict):
+    # Run automated evaluation without impacting user latency
+    groundedness = judge_llm.score_groundedness(payload["context"], payload["answer"])
+    relevance = judge_llm.score_relevance(payload["query"], payload["answer"])
+    
+    # Record metrics to time-series database
+    metrics_client.gauge("ai.production.groundedness", groundedness)
+    metrics_client.gauge("ai.production.relevance", relevance)
+    
+    # Trigger PagerDuty / Slack alert if moving average drops
+    if groundedness < 0.80:
+        alert_engine.notify_team(f"Warning: Low groundedness detected in production ({groundedness})")
+```
+
+## Setting Rolling SLA Thresholds and Anomaly Alerts
+
+Track accuracy as a continuous Service Level Agreement (SLA) on your engineering dashboards:
+
+- **24-Hour Rolling Moving Averages**: Monitor a 24-hour rolling window of groundedness and context relevance. If the rolling average drops by more than 5% week-over-week, trigger an automated engineering alert.
+- **Surfacing Low-Scoring Clusters**: Configure your pipeline to tag and cluster queries that score below 0.70. Grouping these queries by topic reveals emerging documentation gaps or confusing product updates.
+
+## Key Takeaway
+
+Deploying an AI model is not the finish line; it is the beginning of monitoring. By sampling production traffic asynchronously, evaluating traces against groundedness rubrics, and monitoring rolling accuracy SLAs, engineering teams catch accuracy decay and provider drift long before users complain.
+

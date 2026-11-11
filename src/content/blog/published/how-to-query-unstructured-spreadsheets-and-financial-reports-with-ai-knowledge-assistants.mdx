@@ -1,0 +1,109 @@
+---
+title: "How to Query Unstructured Spreadsheets and Financial Reports with AI Knowledge Assistants"
+description: "Vector search fails on spreadsheet math. Discover why enterprise knowledge assistants combine vector retrieval with sandboxed Python and DuckDB execution."
+date: "2026-11-12"
+category: "Data Engineering"
+tags:
+  - "Spreadsheet AI"
+  - "Financial Data"
+  - "Excel Parsing"
+  - "Code Execution"
+  - "Data Analysis"
+featured: false
+---
+
+Enterprise knowledge repositories are not made exclusively of prose documents. A huge percentage of critical corporate data lives in Microsoft Excel workbooks, Google Sheets, and financial CSV exports.
+
+When founding teams attempt to incorporate spreadsheets into a standard RAG pipeline, the system quickly breaks down. Embedding models flatten rows and columns into abstract semantic vectors. When a user asks an analytical question—such as *"What was the average SaaS gross margin across Q3 for enterprise tier customers?"*—vector search retrieves a few scattered cells, and the language model attempts to do mental arithmetic on the numbers, almost always hallucinating the final calculation.
+
+Language models are probabilistic text predictors, not calculation engines. Here is how modern AI systems query spreadsheets and financial reports accurately using code execution and structured analytical engines.
+
+```
+┌────────────────────────────────────────────────────────┐
+│ Hybrid Architecture for Financial Spreadsheets         │
+│                                                        │
+│ [User Query: "What was Q3 total revenue by region?"]   │
+│                           │                            │
+│                           ▼                            │
+│ [Classifier: Qualitative Text vs Quantitative Math?]   │
+│                           │                            │
+│     ┌─────────────────────┴─────────────────────┐      │
+│     ▼ Qualitative Query                         ▼ Math │
+│ [Standard Hybrid Vector Search]         [Schema Profiler]
+│     │                                           │      │
+│     │                                           ▼      │
+│     │                             [Generate DuckDB SQL /│
+│     │                              Pandas Python Code]  │
+│     │                                           │      │
+│     │                                           ▼      │
+│     │                              [Run in Isolated VM] │
+│     │                                           │      │
+│     └─────────────────────┬─────────────────────┘      │
+│                           ▼                            │
+│ [Grounded Answer with Deterministic Financial Output]  │
+└────────────────────────────────────────────────────────┘
+```
+
+## Why Vector Retrieval Fails on Tabular Financial Data
+
+Standard RAG architectures fail on spreadsheets due to two fundamental architectural mismatches:
+
+- **Semantic Dilution**: An Excel file with 5,000 rows of transactional records cannot be effectively embedded. Vector similarity can tell you that a row relates to *"Software Licensing"*, but it cannot aggregate, group, or sum numbers across 500 rows.
+- **Probabilistic Math Hallucinations**: Language models struggle with multi-digit multiplication, division, and statistical operations. Asking an LLM to sum a column of 50 numbers directly within the context window results in subtle mathematical errors that destroy business trust.
+
+## The Two-Tier Architecture: Text Search vs. Code Execution
+
+To handle business documents containing both narrative guidelines and numerical spreadsheets, deploy a two-tier hybrid query router:
+
+- **Tier 1 (Qualitative Questions)**: For policy and text queries (*"What is our revenue recognition policy for multi-year contracts?"*), route to standard hybrid vector retrieval.
+- **Tier 2 (Quantitative Calculations)**: For analytical and mathematical questions (*"What was our total cloud spend in August?"*), route to a deterministic code execution engine.
+
+Instead of passing raw spreadsheet data directly to the LLM, the model's role is strictly to write code or SQL queries that execute against an embedded analytical database.
+
+## Using DuckDB and Pandas for In-Memory Analytical Queries
+
+The most efficient, high-performance engine for querying tabular business documents in production is **DuckDB**:
+
+- **Serverless and Fast**: DuckDB runs in-process with zero external server dependencies, querying Parquet, CSV, and Excel files with microsecond latency.
+- **Natural Language to SQL**: When an analytical question arrives, pass the table schema (column names, inferred data types, and five representative sample rows) to the LLM. Instruct the model to output a deterministic SQL query.
+- **Deterministic Execution**: Execute the generated SQL query in DuckDB to compute the mathematical result with 100% precision.
+
+```python
+# Deterministic analytical query pattern using DuckDB
+import duckdb
+
+def answer_financial_query(user_query: str, spreadsheet_path: str):
+    # Extract schema summary (under 200 tokens)
+    conn = duckdb.connect()
+    conn.execute(f"CREATE TABLE sheet AS SELECT * FROM read_csv_auto('{spreadsheet_path}')")
+    schema_info = conn.execute("DESCRIBE sheet").fetchall()
+    
+    # Prompt LLM to write exact DuckDB SQL
+    sql_query = generate_sql_for_query(user_query, schema_info)
+    
+    # Execute deterministically in DuckDB
+    try:
+        result = conn.execute(sql_query).df()
+        return format_answer(user_query, result)
+    except Exception as exc:
+        return f"Error executing calculation: {str(exc)}"
+```
+
+## Handling Multi-Tab Workbooks and Broken Layouts
+
+Corporate spreadsheets rarely follow pristine database formatting. They contain empty header margins, merged cells, notes in column margins, and multiple workbook tabs:
+
+- **Automated Sheet Profiling**: Run automated Python pre-processors (`openpyxl`, `pandas`) that strip empty padding rows, identify actual header rows dynamically, and split multiple workbook tabs into isolated tables.
+- **Schema Normalization**: Normalize messy header strings into standard lowercase `snake_case` identifiers before generating SQL queries to avoid syntax errors.
+
+## Sandboxing and Code Execution Safety
+
+Allowing an AI model to generate code or SQL queries introduces security risks if uncontained:
+
+- **Read-Only Database Permissions**: Mount files into DuckDB in strictly read-only mode, preventing data mutation or file system tampering.
+- **MicroVM Sandboxing**: If executing dynamic Python code (e.g., using matplotlib to generate visual charts from spreadsheet data), run execution in hardened ephemeral containers or microVMs (such as gVisor or AWS Firecracker) with no internet access.
+
+## Key Takeaway
+
+Do not force vector databases to do arithmetic. By routing qualitative text questions to hybrid search and mathematical calculations to sandboxed DuckDB or Python engines, engineering teams build document assistants that are both semantically fluent and mathematically infallible.
+

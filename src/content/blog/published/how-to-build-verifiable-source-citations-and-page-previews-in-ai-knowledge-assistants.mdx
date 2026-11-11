@@ -1,0 +1,106 @@
+---
+title: "How to Build Verifiable Source Citations and Page Previews in AI Knowledge Assistants"
+description: "Business users distrust unverified AI answers. Learn how to structure bounding boxes, bracketed citation tags, and interactive PDF previews in AI assistants."
+date: "2026-11-12"
+category: "UI & Experience"
+tags:
+  - "Source Citations"
+  - "UI/UX"
+  - "Document Viewer"
+  - "AI Trust"
+  - "Enterprise Software"
+featured: false
+---
+
+The biggest barrier to enterprise adoption of generative AI is not model intelligence. It is trust.
+
+When an employee asks an internal knowledge assistant for an answer—such as an engineering specification, a customer return policy, or a legal clause—they cannot afford to take the model's word for it. In corporate settings, acting on an incorrect AI summary can lead to costly contractual breaches or broken deployments.
+
+To build an AI assistant that business users actually rely on, answers must be verifiable with a single click. Every assertion must point directly to its source document, page number, and original paragraph.
+
+Here is how modern engineering teams design and build verifiable citation pipelines with interactive document previews.
+
+```
+┌────────────────────────────────────────────────────────┐
+│ Verifiable Citation & Document Preview Architecture    │
+│                                                        │
+│ [Grounded Answer: "Standard notice is 30 days [1]."]   │
+│                           │                            │
+│                           ▼                            │
+│ [User Clicks Citation Pill: [1]]                       │
+│                           │                            │
+│                           ▼                            │
+│ [Frontend Drawer Opens: PDF Viewer at Page 14]         │
+│                           │                            │
+│                           ▼                            │
+│ [Bounding Box Highlights Exact Source Clause in Gold]  │
+│ [Snippet Coordinates: {x0: 120, y0: 450, x1: 580...}]  │
+└────────────────────────────────────────────────────────┘
+```
+
+## Why Unverified AI Answers Get Abandoned in Business
+
+When AI assistants output plain paragraphs of synthesized text without attribution, two negative behaviors occur:
+- **Blind Trust Risk**: Unwary employees trust a fabricated statement, causing operational errors that damage company credibility.
+- **Verification Fatigue**: Careful employees spend twenty minutes manually searching through company folders to locate the source document anyway, completely negating the time savings of using AI.
+
+By attaching verifiable citations and instant page previews, users can confirm facts in under five seconds, bridging the trust gap completely.
+
+## Structuring Ingestion Chunks with Spatial Metadata
+
+Verifiable citations begin at the document ingestion phase. When parsing documents (PDFs, Word docs, spreadsheets), your parser must record physical location coordinates alongside the raw text:
+
+- **Source Document ID**: Stable URI or database identifier for the original file.
+- **Page Number**: Zero-indexed or one-indexed page location.
+- **Bounding Box Coordinates**: Normalized spatial coordinates (`[x0, y0, x1, y1]`) identifying where the text block resides on the rendered page canvas.
+
+```json
+{
+  "chunk_id": "chunk_doc_contract_p12_c2",
+  "document_id": "vendor_agreement_2026.pdf",
+  "page_number": 12,
+  "bounding_box": [72.0, 310.5, 540.0, 395.2],
+  "text": "Either party may terminate this agreement with thirty (30) days prior written notice."
+}
+```
+
+## Enforcing Deterministic Citation Tags in Model Prompts
+
+To prevent language models from making unreferenced claims, enforce strict citation syntax in your system prompt:
+
+- **Bracketed Chunk References**: Instruct the model to cite chunks using deterministic numerical brackets matching the retrieved context list (e.g., `[1]`, `[2]`).
+- **Sentence-Level Attribution**: Direct the model to place the bracketed tag immediately after the specific sentence or data point it supports, rather than dumping all citations at the very end of the paragraph.
+
+```python
+# System prompt enforcing sentence-level citation tags
+CITATION_SYSTEM_PROMPT = """You are an enterprise knowledge assistant.
+Answer the user prompt strictly using the provided context chunks.
+Rules:
+1. Every factual statement must end with a citation tag referencing the source chunk index, e.g. [1] or [2].
+2. Never combine multiple unreferenced claims in a single sentence.
+3. If the context does not contain the answer, state that the documentation does not provide this information.
+
+Context Chunks:
+[1] (Doc: vendor_agreement.pdf, Page: 12): "Either party may terminate with 30 days notice."
+[2] (Doc: travel_policy.pdf, Page: 4): "Meals are reimbursable up to $75 per diem."
+"""
+```
+
+## Parsing Citations into Interactive UI Pills
+
+On the client frontend (React, Next.js, or Vue), parse the model's streaming text in real time:
+
+- **Regex Detection**: Detect bracketed citation patterns like `\[(\d+)\]` and convert them into clickable badge components (`<CitationPill index={1} />`).
+- **Interactive Tooltips**: When the user hovers over a citation pill, display a lightweight preview tooltip showing the source document name, page number, and exact extracted snippet.
+- **Document Drawer Integration**: When clicked, trigger an application side-drawer containing a native PDF viewer (such as PDF.js or React-PDF).
+
+## Building Seamless In-Browser Document Viewers
+
+To provide a smooth reading experience:
+- **Instant Page Jumps**: Configure the PDF viewer to open immediately at `page={chunk.page_number}` without requiring the user to scroll through the entire document.
+- **Visual Bounding Box Highlights**: Render a semi-transparent yellow overlay over the canvas coordinates corresponding to the chunk's bounding box, guiding the user's eye directly to the verified text.
+
+## Key Takeaway
+
+Trust is the single most important metric for enterprise AI adoption. By attaching spatial bounding boxes during ingestion, enforcing strict citation tags in model prompts, and rendering interactive PDF preview drawers, engineering teams create a transparent, reliable knowledge tool that employees love using.
+

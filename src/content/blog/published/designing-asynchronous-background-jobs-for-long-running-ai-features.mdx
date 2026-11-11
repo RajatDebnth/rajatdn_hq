@@ -1,0 +1,138 @@
+---
+title: "Designing Asynchronous Background Jobs for Long-Running AI Features"
+description: "Multi-step AI workflows easily exceed standard 30-second HTTP timeouts. Learn how to design resilient background queues with WebSockets and polling."
+date: "2026-11-12"
+author: "Rajat Debnath"
+category: "AI Product Engineering"
+tags: ["Background Jobs", "Asynchronous Architecture", "BullMQ", "Celery", "System Reliability"]
+readTime: "5 min read"
+---
+
+In traditional web development, API endpoints follow a predictable SLA: fetch a database record, render HTML or JSON, and respond in 50 to 200 milliseconds. Standard reverse proxies (like Cloudflare, AWS ALB, and Vercel) enforce hard execution timeouts between 30 and 60 seconds.
+
+In generative AI applications, execution times are fundamentally non-deterministic. A multi-step autonomous agent, a batch document summarizer, or a multi-page PDF ingestion pipeline can take between 45 seconds and 10 minutes to complete.
+
+Holding open synchronous HTTP connections while an LLM executes iterative tool loops is an anti-pattern. If a network blip occurs or the edge gateway terminates the connection at 30 seconds, the user sees a generic `504 Gateway Timeout` error—even while your backend continues burning expensive GPU tokens in the background.
+
+To deliver resilient user experiences, software engineering teams must design **Asynchronous Job Pipelines with Real-Time Progress Notification**.
+
+---
+
+### The Asynchronous Job Architecture
+
+Instead of executing LLM tasks in the HTTP request thread, the web server acts as a lightweight job dispatcher:
+
+```
+[User Browser]
+       | 1. POST /api/v1/reports/generate (Payload)
+       v
+[FastAPI / Next.js Web Server]
+       | 2. Validates Request & Creates Job Record in Postgres (Status: "queued")
+       | 3. Enqueues Task ID to Redis (BullMQ / Celery)
+       v
+[Returns 202 Accepted: {"job_id": "job_984", "status": "queued"}]
+       |
+       | 4. User Browser opens SSE or WebSocket connection to: /api/v1/jobs/job_984/stream
+       v
+[Asynchronous Worker Pool]
+       | 5. Pops Job from Queue & Executes Multi-Step LLM Workflow
+       | 6. Publishes Incremental Progress to Redis Pub/Sub:
+       |    {"step": 1, "message": "Extracting text from PDF (25%)"}
+       |    {"step": 2, "message": "Synthesizing executive summary (60%)"}
+       | 7. Writes Final Result to S3 & Updates Postgres (Status: "completed")
+```
+
+The user receives an immediate response in under 50 milliseconds, and their browser displays a live, incremental progress indicator without any risk of edge gateway timeouts.
+
+---
+
+### Step-by-Step Implementation with BullMQ and Redis
+
+#### 1. Enqueueing Jobs with Job Fingerprinting
+
+To prevent users from clicking "Submit" three times and spawning redundant multi-dollar generation jobs, use job fingerprinting for deduplication:
+
+```typescript
+import { Queue } from 'bullmq';
+import crypto from 'crypto';
+
+const reportQueue = new Queue('ai-report-generation', {
+  connection: { host: 'redis.internal', port: 6379 }
+});
+
+export async function submitReportJob(userId: string, documentId: string, prompt: string) {
+  // Deterministic hash to deduplicate rapid accidental clicks
+  const jobHash = crypto
+    .createHash('sha256')
+    .update(`${userId}:${documentId}:${prompt}`)
+    .digest('hex');
+
+  const job = await reportQueue.add(
+    'generate-report',
+    { userId, documentId, prompt },
+    {
+      jobId: jobHash, // Deduplicates identical jobs
+      attempts: 3,    // Automatic retry on transient API failure
+      backoff: { type: 'exponential', delay: 2000 },
+      removeOnComplete: { age: 3600 }, // Auto-clean after 1 hour
+      removeOnFail: { age: 86400 }     // Keep failed jobs for 24 hours for debugging
+    }
+  );
+
+  return { jobId: job.id, status: 'queued' };
+}
+```
+
+#### 2. Worker Processing with Granular Progress Emission
+
+Workers consume jobs, coordinate multi-turn LLM agent calls, and publish progress updates at each milestone:
+
+```python
+from celery import Celery
+import redis
+import json
+
+celery_app = Celery('ai_tasks', broker='redis://redis.internal:6379/0')
+redis_pubsub = redis.Redis(host='redis.internal', port=6379, db=1)
+
+@celery_app.task(bind=True)
+def execute_ai_research_job(self, user_id: str, topic: str):
+    job_id = self.request.id
+    
+    def emit_progress(percentage: int, stage: str):
+        payload = json.dumps({"job_id": job_id, "percent": percentage, "stage": stage})
+        redis_pubsub.publish(f"job_progress:{job_id}", payload)
+        self.update_state(state='PROGRESS', meta={'percent': percentage, 'stage': stage})
+
+    # Milestone 1: Query expansion
+    emit_progress(20, "Generating multi-angle search queries...")
+    queries = generate_search_queries(topic)
+    
+    # Milestone 2: Document retrieval
+    emit_progress(50, f"Retrieving research papers across {len(queries)} axes...")
+    docs = retrieve_documents(queries)
+    
+    # Milestone 3: Synthesis
+    emit_progress(80, "Synthesizing comparative analysis with frontier model...")
+    synthesis = run_frontier_synthesis(docs)
+    
+    # Milestone 4: Finalization
+    emit_progress(100, "Research report complete.")
+    return {"status": "completed", "result": synthesis}
+```
+
+#### 3. Client Reconnection and State Recovery
+
+In real-world networks, users close browser tabs, navigate to other pages, or switch from Wi-Fi to cellular data. 
+
+To ensure users never lose completed work:
+- Store final generation payloads in object storage (S3) or PostgreSQL rather than ephemeral Redis caches.
+- Provide a persistent endpoint `GET /api/v1/jobs/{job_id}` so that when the user returns to the page 10 minutes later, the frontend fetches the completed output immediately.
+
+---
+
+### Reliability Checklist for Engineering Teams
+
+- **Implement Dead-Letter Queues (DLQ):** Route persistently failing tasks (e.g., malformed PDF corrupting token limits) to a DLQ for developer inspection rather than retrying indefinitely.
+- **Enforce Per-Tenant Concurrency Limits:** Limit free-tier accounts to 2 concurrent background jobs, reserving high-concurrency worker pools for paid enterprise accounts.
+- **Set Worker Timeouts (Hard Kills):** Configure maximum execution time limits (e.g., 10 minutes) on worker processes to kill runaway infinite LLM tool loops before they rack up hundreds of dollars in compute.

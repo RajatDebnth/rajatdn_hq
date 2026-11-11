@@ -1,0 +1,142 @@
+---
+title: "How to Use Batch Inference APIs to Cut Non-Interactive LLM Workloads by 50 Percent"
+description: "Not all AI workloads need sub-second responses. Learn how to architect asynchronous pipelines with OpenAI and Anthropic Batch APIs for an instant 50% discount."
+date: "2026-11-12"
+category: "Cost Optimization"
+tags:
+  - "Batch API"
+  - "Cost Optimization"
+  - "OpenAI"
+  - "Anthropic"
+  - "Asynchronous Processing"
+featured: false
+---
+
+When developers build with commercial LLM APIs, they almost always use standard synchronous endpoints (`client.chat.completions.create`). You send an HTTP POST request, keep the connection open, and wait for the model to stream or return tokens.
+
+For interactive features—such as customer chat widgets, live copilots, and real-time search—synchronous execution is necessary because a human is actively waiting on the other end of the screen.
+
+However, in typical B2B SaaS applications, a huge percentage of generative AI workloads are completely **non-interactive and asynchronous**:
+- Nightly document summarization and report generation.
+- Batch data extraction across thousands of uploaded supplier invoices.
+- Offline model evaluation and synthetic test dataset generation.
+- Daily customer sentiment tagging and ticket triage.
+
+Paying full synchronous pricing for tasks that users do not inspect until the next morning is a massive misallocation of engineering budget.
+
+By migrating non-interactive workloads to **Batch Inference APIs** (offered by OpenAI, Anthropic, and Google Cloud), engineering teams receive an **immediate, flat 50% discount** on all input and output tokens while benefiting from significantly higher rate limits.
+
+Here is how to architect an asynchronous batch processing pipeline.
+
+```
+┌────────────────────────────────────────────────────────┐
+│ Asynchronous Batch Inference Pipeline (50% Discount)   │
+│                                                        │
+│ [Non-Interactive Workload: 10,000 PDF Invoices to Parse]│
+│                           │                            │
+│                           ▼                            │
+│ [Worker Script Formats Requests into JSONL File]       │
+│  └── `{"custom_id": "inv_1", "body": {...}}`           │
+│                           │                            │
+│                           ▼                            │
+│ [Upload to Provider Batch API: OpenAI / Anthropic]     │
+│  • Cost: 50% Off Standard Token Rates                  │
+│  • SLA: Completed within 24 Hours                      │
+│                           │                            │
+│                           ▼                            │
+│ [Webhook / Polling Worker Detects Batch Completion]    │
+│                           │                            │
+│                           ▼                            │
+│ [Download Result JSONL ──► Ingest into Database]       │
+│  └── Exactly Identical Model Quality at Half Price     │
+└────────────────────────────────────────────────────────┘
+```
+
+## How Batch APIs Work Under the Hood
+
+Cloud AI providers operate massive GPU clusters. During peak business hours (e.g., 10:00 AM to 4:00 PM EST), demand surges, straining capacity. During off-peak hours (nights and weekends), significant GPU compute sits idle.
+
+To smooth out cluster utilization, providers offer **Batch APIs**:
+- You submit a single `.jsonl` file containing hundreds or thousands of individual completion requests.
+- The provider processes your jobs asynchronously whenever spare GPU capacity becomes available across their global fleet, guaranteeing completion within a 24-hour SLA window (though most batches finish in 15 to 45 minutes).
+- In exchange for allowing the provider to schedule compute flexibly, you receive a guaranteed **50% discount** on all prompt and completion tokens.
+
+The underlying model, weights, and generation quality are 100% identical to synchronous endpoints.
+
+## Step 1: Formatting Requests into JSONL Manifests
+
+Batch APIs expect requests packaged as line-delimited JSON (`.jsonl`), where each line represents an independent API call identified by a unique `custom_id`:
+
+```python
+import json
+
+def generate_batch_jsonl(documents: list[dict], output_filepath: str):
+    with open(output_filepath, "w", encoding="utf-8") as f:
+        for doc in documents:
+            request_payload = {
+                "custom_id": f"doc_{doc['id']}",
+                "method": "POST",
+                "url": "/v1/chat/completions",
+                "body": {
+                    "model": "gpt-4o",
+                    "messages": [
+                        {"role": "system", "content": "Extract invoice fields into JSON."},
+                        {"role": "user", "content": doc["text"]}
+                    ],
+                    "temperature": 0.0
+                }
+            }
+            f.write(json.dumps(request_payload) + "\n")
+```
+
+## Step 2: Submitting and Monitoring the Batch Job
+
+Submit the file to the provider's file storage and trigger the batch execution:
+
+```python
+from openai import OpenAI
+
+client = OpenAI()
+
+def submit_batch_job(jsonl_file_path: str):
+    # 1. Upload file to OpenAI file storage
+    batch_file = client.files.create(
+        file=open(jsonl_file_path, "rb"),
+        purpose="batch"
+    )
+    
+    # 2. Create the batch execution job
+    batch_job = client.batches.create(
+        input_file_id=batch_file.id,
+        endpoint="/v1/chat/completions",
+        completion_window="24h"
+    )
+    print(f"Batch submitted successfully. Batch ID: {batch_job.id}")
+    return batch_job.id
+```
+
+## Step 3: Ingesting Results and Handling Failures
+
+Your application uses a background worker (or webhook receiver) to check batch status. Once the job transitions to `completed`:
+- Download the output `.jsonl` file.
+- Match results back to your database records using the `custom_id` tag.
+- Batch APIs also generate an `error_file_id` if any individual requests failed validation, allowing you to re-try only the specific failing lines rather than restarting the entire workload.
+
+## Real-World Unit Economics: The 50% Savings
+
+Consider a B2B SaaS platform that processes 50,000 corporate documents every week for end-of-month reporting (averaging 2,000 prompt tokens and 300 completion tokens per document):
+
+- **Using Synchronous GPT-4o Endpoints**:
+  - Input: 100M tokens * $2.50/M = $250.
+  - Output: 15M tokens * $10.00/M = $150.
+  - Total Weekly Spend: **$400** ($1,600 / month).
+- **Using Batch Inference API**:
+  - Input: 100M tokens * $1.25/M = $125.
+  - Output: 15M tokens * $5.00/M = $75.
+  - Total Weekly Spend: **$200** ($800 / month).
+  - **Net Annual Savings**: **$9,600 saved per year** on a single background pipeline, achieved with zero model downgrades or architectural rewrites.
+
+## Key Takeaway
+
+If a human user is not actively waiting on a spinner, do not use synchronous API endpoints. By migrating non-interactive workflows—such as document extraction, nightly evaluations, and catalog tagging—to Batch APIs, engineering teams instantly cut token expenses by 50% while operating with virtually uncapped rate limits.
+

@@ -1,0 +1,123 @@
+---
+title: "Essential APM Metrics for Production LLMs: TTFT, Throughput, and End-to-End Latency"
+description: "Standard server latency metrics fail for LLMs. Discover how to track Time-to-First-Token (TTFT), token throughput, and end-to-end latency in production."
+date: "2026-11-12"
+author: "Rajat Debnath"
+category: "AI Observability & MLOps"
+tags: ["APM", "Observability", "Latency Optimization", "TTFT", "Performance Monitoring"]
+readTime: "5 min read"
+---
+
+In traditional application performance monitoring (APM), engineering teams rely on standard HTTP request duration: a client sends a request, the server executes business logic, and the client receives a response in 150 milliseconds. Metrics like p95 latency and HTTP error rates give engineers an accurate picture of user experience.
+
+In generative AI systems, standard HTTP request duration is a misleading vanity metric. 
+
+An LLM generation request might take 6.5 seconds to complete. If that request streams tokens to the user starting at 280 milliseconds, the user perceives the application as instant and responsive. Conversely, if an unstreamed request takes 3.2 seconds with a completely blank screen, the user perceives the application as frozen and broken.
+
+To measure and optimize production AI performance accurately, engineering teams must transition from generic web metrics to **LLM-Specific Telemetry Metrics**: Time-to-First-Token (TTFT), Token Generation Throughput (TPS), and Time-per-Output-Token (TPOT).
+
+---
+
+### The 4 Core LLM Latency Dimensions
+
+```
+[Timeline of an LLM Request]
+T0: User Request Sent
+ |
+ |<==== Prefill / TTFT Phase ====>|
+ |                                |
+T1: First Token Arrives at Client (TTFT)
+ |
+ |<================ Decoding / Generation Phase ================>|
+ |                                                                |
+T2: Final Token Arrives (Time-to-Last-Token / TTLT)
+
+Key Derived Metrics:
+- Time-to-First-Token (TTFT) = T1 - T0
+- Total Generation Time = T2 - T1
+- Token Generation Velocity = (Total Completion Tokens) / (T2 - T1)
+- Time-per-Output-Token (TPOT) = (T2 - T1) / (Total Completion Tokens - 1)
+```
+
+Each metric diagnoses a completely different subsystem of your AI application stack.
+
+---
+
+### Diagnosing Performance Bottlenecks with LLM Metrics
+
+#### 1. Time-to-First-Token (TTFT): Diagnosing Prefill & Ingestion
+
+TTFT measures the delay between when the user submits an input and when the first generated token renders in their viewport.
+
+- **What It Measures:** Network transit time, vector database search latency (in RAG systems), prompt template rendering, and model prefill phase (processing the input prompt through attention heads).
+- **Production Target:** 250ms to 600ms for commercial APIs; 100ms to 300ms for self-hosted models.
+- **Root Causes of High TTFT:** Overly verbose system prompts, unoptimized vector search indexes (missing HNSW parameters), bloated retrieval context (injecting 20 chunks when 3 suffice), or cold KV cache misses.
+
+#### 2. Time-per-Output-Token (TPOT): Diagnosing Memory Bandwidth
+
+TPOT measures the average time required to generate each incremental completion token after the first token arrives.
+
+- **What It Measures:** Autoregressive decoding efficiency and GPU memory bandwidth saturation.
+- **Production Target:** 15ms to 35ms per token (corresponding to 30 to 70 tokens per second).
+- **Root Causes of High TPOT:** High GPU memory bus contention on self-hosted instances, unquantized large models (running FP16 on small VRAM), or server-side queue saturation at commercial model providers.
+
+#### 3. Token Generation Throughput (Tokens per Second - TPS)
+
+Throughput evaluates how many tokens your serving infrastructure can emit concurrently across all active user sessions:
+
+```
+Throughput = Total Generated Tokens Across All Users / Total Elapsed Clock Seconds
+```
+
+In self-hosted vLLM or TensorRT-LLM clusters, monitoring system-level TPS reveals when your serving nodes are nearing saturation and require horizontal auto-scaling.
+
+---
+
+### Instrumenting LLM APM with OpenTelemetry
+
+Capture granular timing data directly in your request proxy or middleware using OpenTelemetry spans:
+
+```python
+import time
+from opentelemetry import trace
+
+tracer = trace.get_tracer("ai-gateway-apm")
+
+async def instrumented_streaming_llm_call(prompt: str):
+    t0 = time.time()
+    first_token_time = None
+    token_count = 0
+
+    with tracer.start_as_current_span("llm_generation") as span:
+        span.set_attribute("llm.prompt_length", len(prompt))
+        
+        async for chunk in call_llm_stream(prompt):
+            if first_token_time is None:
+                first_token_time = time.time()
+                ttft_ms = (first_token_time - t0) * 1000
+                span.set_attribute("llm.ttft_ms", ttft_ms)
+                
+            token_count += 1
+            yield chunk
+
+        t_end = time.time()
+        total_duration = t_end - t0
+        generation_duration = t_end - first_token_time if first_token_time else 0
+        tpot_ms = (generation_duration / token_count * 1000) if token_count > 1 else 0
+
+        span.set_attribute("llm.total_duration_ms", total_duration * 1000)
+        span.set_attribute("llm.completion_tokens", token_count)
+        span.set_attribute("llm.tpot_ms", tpot_ms)
+        span.set_attribute("llm.tokens_per_second", token_count / generation_duration if generation_duration > 0 else 0)
+```
+
+Exporting these metrics to Grafana or Datadog gives operations teams a real-time dashboard of user-perceived responsiveness across model families.
+
+---
+
+### Executive SLA Checklist for CTOs
+
+1. **Alert on TTFT P95:** Configure PagerDuty alerts firing when TTFT p95 exceeds 1,200ms over a 5-minute window, allowing engineers to catch vector search degradation before users complain.
+2. **Monitor Cold vs. Warm Latency:** Track TTFT separately for prompt cache hits versus cache misses to measure the real-world performance impact of KV caching.
+3. **Correlate TPOT with User Drops:** Analyze whether spikes in TPOT (slower generation speed) correlate with increased user stream cancellation rates.
+

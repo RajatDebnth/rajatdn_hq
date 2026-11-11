@@ -1,0 +1,144 @@
+---
+title: "How to Instrument Distributed Tracing for RAG Pipelines Using OpenTelemetry"
+description: "Debugging slow or inaccurate RAG requires full pipeline visibility. Learn how to instrument OpenTelemetry spans across embedding, retrieval, and synthesis."
+date: "2026-11-12"
+author: "Rajat Debnath"
+category: "AI Observability & MLOps"
+tags: ["OpenTelemetry", "Distributed Tracing", "RAG Observability", "APM", "Debugging"]
+readTime: "5 min read"
+---
+
+When an end-user complains that an AI knowledge assistant gave an inaccurate answer or took 8 seconds to respond, debugging the root cause without distributed tracing is nearly impossible.
+
+In a modern Retrieval-Augmented Generation (RAG) architecture, a single user prompt traverses multiple distinct microservices and external APIs:
+1. Input query sanitization and prompt injection checks.
+2. Query rewriting and hypothetical document expansion (HyDE).
+3. Dense vector embedding generation via external API.
+4. Semantic similarity search across a vector database (Pinecone, Qdrant).
+5. Sparse keyword retrieval via BM25 (Elasticsearch).
+6. Cross-encoder reranking to re-score candidate chunks.
+7. Final LLM synthesis with frontier models.
+
+If latency spikes to 8 seconds, which subsystem was responsible? Did the vector database HNSW graph stall during search, did the cross-encoder spend 4 seconds re-ranking 50 chunks, or was the LLM provider experiencing queue delays?
+
+To achieve true operational visibility, engineering teams must implement **Distributed Tracing using OpenTelemetry (OTel)**.
+
+---
+
+### The Anatomy of a RAG Trace
+
+A distributed trace groups every operational sub-task into hierarchical "spans" linked by a single immutable `trace_id`:
+
+```
+[Root Trace: /api/v1/rag/query - Total Duration: 2,420 ms]
+ |
+ +--- [Span 1: query_sanitization] ------------ 15 ms
+ |
+ +--- [Span 2: query_expansion_llm] ----------- 380 ms (Model: gpt-4o-mini)
+ |
+ +--- [Span 3: dense_embedding_generation] ---- 140 ms (Model: text-embedding-3-small)
+ |
+ +--- [Span 4: hybrid_retrieval] -------------- 220 ms
+ |     |
+ |     +--- [Sub-Span 4a: pinecone_vector_query] --- 180 ms (Retrieved 20 chunks)
+ |     +--- [Sub-Span 4b: elasticsearch_bm25] ------ 40 ms (Retrieved 20 chunks)
+ |
+ +--- [Span 5: cross_encoder_rerank] ---------- 180 ms (Reduced 40 to 5 chunks)
+ |
+ +--- [Span 6: final_llm_synthesis] ----------- 1,485 ms (Model: gpt-4o | TTFT: 320 ms)
+```
+
+With this flame graph, an engineer instantly sees that `final_llm_synthesis` consumed 61% of request duration, while retrieval and reranking executed in under 400 milliseconds.
+
+---
+
+### Step-by-Step Implementation with OpenTelemetry Python SDK
+
+#### 1. Initializing OpenTelemetry Tracing
+
+Configure the global tracer provider and export spans to your observability backend (Jaeger, Datadog, or Honeycomb):
+
+```python
+from opentelemetry import trace
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
+from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+from opentelemetry.sdk.resources import Resource
+
+# Define service identity
+resource = Resource.create({"service.name": "enterprise-rag-service"})
+provider = TracerProvider(resource=resource)
+processor = BatchSpanProcessor(OTLPSpanExporter(endpoint="http://otel-collector:4317"))
+provider.add_span_processor(processor)
+trace.set_tracer_provider(provider)
+
+tracer = trace.get_tracer("rag-telemetry-engine")
+```
+
+#### 2. Instrumenting the RAG Pipeline with Contextual Attributes
+
+Wrap each stage of your RAG workflow with child spans, annotating spans with domain-specific metadata (chunk counts, similarity scores, token counts):
+
+```python
+async def execute_traced_rag(user_query: str, tenant_id: str):
+    with tracer.start_as_current_span("rag_pipeline") as root_span:
+        root_span.set_attribute("tenant.id", tenant_id)
+        root_span.set_attribute("user.query_length", len(user_query))
+
+        # 1. Query Embedding Span
+        with tracer.start_as_current_span("dense_embedding") as embed_span:
+            query_vector = await generate_embedding(user_query)
+            embed_span.set_attribute("embedding.dimensions", len(query_vector))
+
+        # 2. Vector Database Retrieval Span
+        with tracer.start_as_current_span("vector_retrieval") as search_span:
+            search_span.set_attribute("vector_db.system", "pinecone")
+            search_span.set_attribute("vector_db.top_k", 20)
+            
+            raw_chunks = await vector_db.query(query_vector, top_k=20, tenant_id=tenant_id)
+            search_span.set_attribute("retrieval.chunks_found", len(raw_chunks))
+
+        # 3. Reranking Span
+        with tracer.start_as_current_span("cross_encoder_rerank") as rerank_span:
+            rerank_span.set_attribute("reranker.model", "bge-reranker-large")
+            top_chunks = await reranker.score(user_query, raw_chunks, top_n=5)
+            rerank_span.set_attribute("reranker.output_chunks", len(top_chunks))
+            rerank_span.set_attribute("reranker.top_score", top_chunks[0]["score"])
+
+        # 4. LLM Generation Span
+        with tracer.start_as_current_span("llm_generation") as gen_span:
+            gen_span.set_attribute("llm.model", "gpt-4o")
+            response = await call_llm(user_query, top_chunks)
+            gen_span.set_attribute("llm.prompt_tokens", response["usage"]["prompt_tokens"])
+            gen_span.set_attribute("llm.completion_tokens", response["usage"]["completion_tokens"])
+
+        return response["answer"]
+```
+
+#### 3. Correlating Traces with Evaluation Scores
+
+When users submit thumbs-down ratings or automated evaluation pipelines flag hallucinations, attach the evaluation score back to the original trace ID using span events:
+
+```python
+def attach_feedback_to_trace(trace_id: str, feedback_score: int, comment: str):
+    # Log evaluation result linked directly to trace ID
+    telemetry_logger.info(
+        "Evaluation score recorded",
+        extra={
+            "trace_id": trace_id,
+            "feedback.score": feedback_score,
+            "feedback.comment": comment
+        }
+    )
+```
+
+Engineers can filter traces in Datadog or Jaeger by `feedback.score == 0` to immediately pull up the exact flame graphs and retrieved chunks of every failed user session.
+
+---
+
+### Observability Best Practices for Dev Teams
+
+- **Mask PII in Spans:** Never record unredacted user queries or document payloads in span attributes. Log token counts, document IDs, and chunk hashes instead of raw personal text to maintain GDPR compliance.
+- **Sample High-Volume Traces:** When processing millions of daily searches, recording 100% of traces generates excessive APM storage costs. Implement probabilistic head-based sampling: record 5% of successful requests and 100% of requests that return errors or latency above 3 seconds.
+- **Set Up Latency Alerts on Sub-Spans:** Alert on individual span degradation (e.g., reranker taking greater than 500ms) to detect third-party service degradation before total request timeouts occur.
+

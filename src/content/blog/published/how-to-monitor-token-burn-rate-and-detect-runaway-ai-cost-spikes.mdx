@@ -1,0 +1,125 @@
+---
+title: "How to Monitor Token Burn Rate and Detect Runaway AI Cost Spikes"
+description: "An infinite agent loop can burn thousands of dollars overnight. Discover how to monitor token burn velocity and implement automated circuit breakers."
+date: "2026-11-12"
+author: "Rajat Debnath"
+category: "AI Observability & MLOps"
+tags: ["FinOps", "Cost Spikes", "Token Monitoring", "Anomalies", "AI Gateway"]
+readTime: "5 min read"
+---
+
+Every engineering team deploying generative AI and autonomous agents shares a recurring nightmare: an engineer deploys an autonomous tool-calling agent with a subtle bug in its termination condition. The agent enters an infinite loop, querying a frontier model every two seconds with 30,000 tokens of growing conversation history.
+
+By 8:00 AM the next morning, the startup has burned through $12,000 in OpenAI or Anthropic API credits—completely exhausting runway before any human noticed.
+
+Unlike traditional software where an infinite loop causes a server CPU spike that triggers automated container restarts, an infinite loop in generative AI consumes commercial API credits silently. The third-party provider happily processes every request and bills your credit card on file.
+
+To protect startup runway and enterprise budgets, engineering teams must implement **Real-Time Token Burn Velocity Monitoring and Automated Financial Circuit Breakers**.
+
+---
+
+### The Anatomy of an AI Cost Spike
+
+Cost spikes generally stem from three distinct production failure modes:
+
+```
+[Common Production Cost Spike Triggers]
+1. Runaway Autonomous Agent Loops:
+   Agent fails tool call ===> Retries with identical prompt ===> Repeats 5,000 times.
+
+2. Context Window Snowballing:
+   Chat session fails to truncate conversation history ===> Turn 50 submits 120k tokens.
+
+3. Malicious Automated Scraping:
+   Adversarial user automates calls to your public demo ===> Burns $200/hr in tokens.
+```
+
+Catching these anomalies requires monitoring **Token Velocity** (tokens consumed per minute) rather than aggregate daily billing totals.
+
+---
+
+### 3 Automated Safeguards to Intercept Runaway Costs
+
+#### 1. Real-Time Token Velocity Tracking via Redis Sliding Windows
+
+Instead of waiting for provider billing dashboards to update (which often lag by 2 to 24 hours), calculate token consumption in real time at your internal API gateway:
+
+```python
+import redis.asyncio as redis
+import time
+
+redis_client = redis.Redis(host="redis.internal", port=6379)
+
+async def track_token_consumption(tenant_id: str, prompt_tokens: int, completion_tokens: int):
+    current_minute = int(time.time() // 60)
+    total_tokens = prompt_tokens + completion_tokens
+    
+    # Track per-tenant and system-wide token velocity
+    pipe = redis_client.pipeline()
+    tenant_key = f"token_velocity:tenant:{tenant_id}:{current_minute}"
+    system_key = f"token_velocity:global:{current_minute}"
+    
+    pipe.incrby(tenant_key, total_tokens)
+    pipe.expire(tenant_key, 3600)  # Retain for 1 hour
+    pipe.incrby(system_key, total_tokens)
+    pipe.expire(system_key, 3600)
+    
+    tenant_spend, global_spend = await pipe.execute()
+    
+    # Trigger velocity anomaly checks
+    await evaluate_velocity_anomalies(tenant_id, tenant_spend, global_spend)
+```
+
+#### 2. Dynamic Z-Score Anomaly Detection
+
+Static rate limits (e.g., hard-capping every user at 10,000 tokens/minute) cause false positives for legitimate enterprise power users during peak business hours.
+
+Use a rolling statistical baseline (mean and standard deviation) to detect true anomalies:
+
+```python
+async def is_burn_rate_anomalous(tenant_id: str, current_minute_tokens: int) -> bool:
+    # Fetch historical average token burn over the past 7 days for this tenant
+    historical_stats = await get_tenant_historical_stats(tenant_id)
+    mean = historical_stats["mean_tokens_per_minute"]
+    std_dev = historical_stats["std_dev_tokens_per_minute"]
+    
+    # Calculate Z-Score: (X - mu) / sigma
+    if std_dev > 0:
+        z_score = (current_minute_tokens - mean) / std_dev
+        # Flag anomaly if token burn rate exceeds 4 standard deviations above baseline
+        if z_score > 4.0 and current_minute_tokens > 50_000:
+            return True
+            
+    return False
+```
+
+If an account that normally consumes 2,000 tokens per minute suddenly consumes 150,000 tokens per minute, the anomaly detector flags the event instantly.
+
+#### 3. Automated Emergency Circuit Breaker (Soft vs. Hard Kill)
+
+When a cost spike is detected, the gateway executes an automated incident response protocol without waiting for human intervention:
+
+```
+[Anomaly Detected: Tenant_88 burning 200k tokens/min]
+       |
+       v
+[Stage 1: Soft Throttle (Immediate)]
+- Downgrade tenant from GPT-4o ($10/1M output) to GPT-4o-mini ($0.60/1M output).
+- Cap max_tokens at 250 tokens per request.
+- Sends urgent Slack alert to #oncall-finops: "Unusual token burn on Tenant 88".
+       |
+       v (If burn continues unabated for 3 minutes)
+[Stage 2: Hard Circuit Trip (Emergency Cutoff)]
+- Temporarily revokes tenant API key with HTTP 429:
+  "Automated spending safeguard activated. Contact support to resume."
+- Preserves company credit card and limits total loss to less than $25.
+```
+
+---
+
+### FinOps Checklist for CTOs and Technical Founders
+
+1. **Set Hard Provider Spend Limits:** Configure hard monthly spend limits in the OpenAI, Anthropic, and AWS consoles with automated credit card cutoffs.
+2. **Hard-Cap Max Agent Turns:** In autonomous agent loops, strictly enforce an invariant limit: `if iteration_count > 10: raise MaxIterationsExceeded()`. Never allow unbounded recursive tool calling.
+3. **Audit Token Length by Endpoint:** Generate weekly histograms of token usage across product routes. Endpoints with high variances are typically missing strict system prompt constraints or stop sequences.
+

@@ -1,0 +1,139 @@
+---
+title: "Cost Allocation and Per-Tenant Gross Margin Auditing in Multi-Tenant RAG"
+description: "Hidden RAG infrastructure costs kill SaaS margins. Discover how to track vector storage, embedding generation, and LLM inference per customer tenant."
+date: "2026-11-12"
+author: "Rajat Debnath"
+category: "Architecture & Multi-Tenancy"
+tags: ["FinOps", "Multi-Tenancy", "Unit Economics", "Cost Allocation", "B2B SaaS"]
+readTime: "5 min read"
+---
+
+In traditional subscription software, B2B SaaS gross margins consistently sit between 75% and 85%. Compute, memory, and database costs scale sub-linearly with customer headcount, making customer unit economics predictable and investor-friendly.
+
+When SaaS products introduce multi-tenant RAG systems, gross margins often deteriorate without warning. 
+
+A multi-tenant RAG feature does not just incur linear LLM inference costs. It consumes three distinct infrastructure resources:
+1. **Embedding API Costs:** Thousands of dollars spent generating vector embeddings whenever customers upload, edit, or re-index document batches.
+2. **Vector Database Memory & Storage Costs:** Fixed RAM allocations and vector disk space reserved in Pinecone, Qdrant, or pgvector across thousands of tenants.
+3. **LLM Generation Token Costs:** Variable completion and prompt token consumption across daily user search and synthesis sessions.
+
+Without automated, per-tenant cost attribution, SaaS companies inevitably fall victim to **Margin Camouflage**: aggregate revenue looks healthy, but the top 5% of power users burn more in AI cloud infrastructure than they pay in subscription fees, dragging down overall company profitability.
+
+---
+
+### The Three Pillars of RAG Cost Attribution
+
+To accurately audit customer gross margins, your telemetry pipeline must capture spend across all three RAG operational phases:
+
+```
+[Customer Request Lifecycle]
+1. Document Ingestion Phase:
+   Tenant Uploads File ===> [Embedding API ($0.02 / 1M tokens)]
+                       ===> [Vector DB Storage ($0.10 / 100k vectors / mo)]
+
+2. Query & Retrieval Phase:
+   User Submits Query  ===> [Query Embedding ($0.0001)]
+                       ===> [Vector Search IOPS & Read Replicas]
+
+3. Synthesis Phase:
+   Context + Prompt    ===> [LLM Provider Prompt Tokens ($2.50 / 1M)]
+                       ===> [LLM Provider Completion Tokens ($10.00 / 1M)]
+                       ===> [Prompt Cache Savings (-90% discount)]
+```
+
+Every dollar of cloud infrastructure expense must be deterministically tagged with an immutable `tenant_id` at the moment of consumption.
+
+---
+
+### Implementing Per-Tenant Cost Telemetry
+
+#### 1. Tagging Asynchronous Ingestion Spend
+
+When background workers parse and embed documents, log the exact token counts and vector dimensions against the customer's account:
+
+```python
+async def record_ingestion_cost(tenant_id: str, document_id: str, chunk_count: int, token_count: int):
+    # Embedding pricing: text-embedding-3-small @ $0.02 per 1M tokens
+    embedding_cost = (token_count / 1_000_000) * 0.02
+    
+    # Prorated monthly vector storage: ~$0.08 per 10k vectors/month
+    monthly_storage_cost = (chunk_count / 10_000) * 0.08
+    
+    await analytics_db.execute(
+        """
+        INSERT INTO tenant_rag_costs (tenant_id, event_type, resource_id, tokens, direct_cost_usd, timestamp)
+        VALUES ($1, 'ingestion_embedding', $2, $3, $4, NOW())
+        """,
+        tenant_id, document_id, token_count, embedding_cost
+    )
+```
+
+#### 2. Metering Retrieval and Generation at the Gateway
+
+Intercept every RAG search and generation query at your internal API gateway, calculating blended cost while factoring in prompt caching discounts:
+
+```python
+def calculate_rag_session_cost(usage_payload: dict, model: str = "gpt-4o") -> float:
+    # Model pricing registry per million tokens
+    RATES = {
+        "gpt-4o": {"input": 2.50, "output": 10.00, "cached": 1.25},
+        "claude-3-5-sonnet": {"input": 3.00, "output": 15.00, "cached": 0.30}
+    }
+    
+    rates = RATES[model]
+    prompt_tokens = usage_payload.get("prompt_tokens", 0)
+    completion_tokens = usage_payload.get("completion_tokens", 0)
+    cached_tokens = usage_payload.get("cached_tokens", 0)
+    
+    clean_prompt = prompt_tokens - cached_tokens
+    
+    total_cost = (
+        (clean_prompt / 1_000_000 * rates["input"]) +
+        (cached_tokens / 1_000_000 * rates["cached"]) +
+        (completion_tokens / 1_000_000 * rates["output"])
+    )
+    return round(total_cost, 6)
+```
+
+#### 3. Generating Real-Time Gross Margin Dashboards
+
+By combining subscription revenue data from Stripe with granular RAG cost logs in ClickHouse or TimescaleDB, engineering and finance leaders can audit real customer margins in real time:
+
+```sql
+-- Per-Tenant Monthly Gross Margin Query
+SELECT 
+    t.tenant_id,
+    t.plan_name,
+    t.monthly_subscription_fee,
+    COALESCE(SUM(c.direct_cost_usd), 0) AS total_ai_infrastructure_cost,
+    (t.monthly_subscription_fee - COALESCE(SUM(c.direct_cost_usd), 0)) AS net_gross_profit,
+    ROUND(
+        ((t.monthly_subscription_fee - COALESCE(SUM(c.direct_cost_usd), 0)) / t.monthly_subscription_fee) * 100, 
+        2
+    ) AS gross_margin_percentage
+FROM tenants t
+LEFT JOIN tenant_rag_costs c 
+    ON t.tenant_id = c.tenant_id 
+    AND c.timestamp >= DATE_TRUNC('month', CURRENT_DATE)
+GROUP BY t.tenant_id, t.plan_name, t.monthly_subscription_fee
+ORDER BY gross_margin_percentage ASC;
+```
+
+---
+
+### Strategic Interventions for Low-Margin Accounts
+
+When your gross margin dashboard identifies accounts with margins falling below your company's target threshold (e.g., less than 65%), technical leadership can deploy targeted engineering solutions:
+
+- **Enforce Aggressive Semantic Caching:** For accounts with repetitive search queries, increase semantic cache similarity windows to intercept redundant searches before they hit LLM APIs.
+- **Downgrade to Model Cascades:** Route standard Q&A queries for starter-tier accounts to cost-efficient models (GPT-4o-mini or Claude 3.5 Haiku), reserving frontier models for complex multi-document synthesis.
+- **Implement Usage-Based Overage Caps:** Structure customer contracts to include an allocated quota of AI queries per month (e.g., 500 queries/seat/month), seamlessly charging metered overage rates via Stripe for excess consumption.
+
+---
+
+### Executive Checklist for CTOs
+
+1. **Tag All Vectors with Tenant Metadata:** Never insert an embedding into a vector database without recording `tenant_id` and document creation timestamps.
+2. **Account for Cache Savings:** Always deduct prompt cache hits from billing calculations to ensure internal margin models reflect true vendor bills.
+3. **Automate Slack Anomaly Webhooks:** Set up alerts notifying product managers whenever any customer consumes more than 50% of their monthly subscription fee in AI infrastructure during the first 10 days of a billing cycle.
+

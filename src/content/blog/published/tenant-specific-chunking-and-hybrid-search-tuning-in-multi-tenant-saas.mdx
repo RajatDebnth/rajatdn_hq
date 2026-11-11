@@ -1,0 +1,157 @@
+---
+title: "Tenant-Specific Chunking and Hybrid Search Tuning in B2B SaaS"
+description: "One-size-fits-all RAG pipelines fail across diverse enterprise data. Discover how to implement tenant-specific chunking strategies and dynamic hybrid search."
+date: "2026-11-12"
+author: "Rajat Debnath"
+category: "Architecture & Multi-Tenancy"
+tags: ["Chunking", "Hybrid Search", "BM25", "Multi-Tenancy", "RAG Optimization"]
+readTime: "5 min read"
+---
+
+When launching an enterprise B2B SaaS product with AI search, engineering teams typically start with a uniform, one-size-fits-all ingestion pipeline: every uploaded document is split into 500-token chunks with 50-token overlap and indexed using a single default dense vector embedding model.
+
+In a multi-tenant environment, this standardized approach quickly breaks down.
+
+Your customer base is rarely homogeneous. Tenant A might be a legal tech firm uploading 150-page credit agreements where semantic context spans multi-paragraph cross-references. Tenant B might be a software development agency indexing API documentation and code repositories where exact keyword match is critical. Tenant C might be a healthcare provider querying patient records filled with rare medical acronyms and ICD-10 codes.
+
+Applying identical chunking and retrieval parameters across diverse tenant cohorts causes high hallucination rates and poor search recall. To deliver high-accuracy search for every customer, engineering teams must implement **Tenant-Specific Chunking Profiles and Dynamic Hybrid Search Tuning**.
+
+---
+
+### The Flaw of Static Multi-Tenant Retrieval
+
+When all tenants share identical RAG hyperparameters, diverse customer domains suffer from retrieval misalignment:
+
+```
+[Static Ingestion Pipeline - One-Size-Fits-All Failure]
+Legal Tenant A Documents    ===> [Fixed 500-Token Chunk] ===> Context Severed mid-clause
+Code Tenant B Repositories  ===> [Fixed 500-Token Chunk] ===> Function Signatures Broken
+Medical Tenant C Records    ===> [Fixed 500-Token Chunk] ===> Acronyms Mislabeled
+```
+
+- **Dense Vectors Struggle with Precision:** Tenant B searching for an exact variable name like `auth_jwt_token_v2` fails because dense embeddings favor broad conceptual similarity over exact string matches.
+- **BM25 Struggles with Conceptual Nuance:** Tenant A searching for `"liability exemptions in indemnification clauses"` fails under keyword search because contracts use varied legal phrasing.
+
+Solving this requires allowing the ingestion engine and retrieval system to adapt dynamically to the tenant's domain profile.
+
+---
+
+### 3 Steps to Implement Tenant-Aware RAG Tuning
+
+#### 1. Tenant Configuration Profiles
+
+Store tenant-specific RAG preferences in your database schema alongside customer account settings:
+
+```python
+from pydantic import BaseModel
+from typing import Optional
+
+class TenantRagProfile(BaseModel):
+    tenant_id: str
+    chunk_size: int = 512
+    chunk_overlap: int = 64
+    chunking_strategy: str = "recursive"  # Options: "recursive", "markdown_header", "code_syntax"
+    hybrid_alpha: float = 0.5  # 0.0 = Pure Keyword (BM25), 1.0 = Pure Vector (Dense)
+    enable_reranking: bool = True
+    custom_stop_words: list[str] = []
+
+# Example Configurations by Industry Vertical:
+PROFILES = {
+    "legal_corp": TenantRagProfile(
+        tenant_id="tenant_legal_12",
+        chunk_size=1024,
+        chunk_overlap=128,
+        chunking_strategy="markdown_header",
+        hybrid_alpha=0.75  # Heavy semantic weighting
+    ),
+    "dev_saas": TenantRagProfile(
+        tenant_id="tenant_dev_88",
+        chunk_size=400,
+        chunk_overlap=40,
+        chunking_strategy="code_syntax",
+        hybrid_alpha=0.25  # Heavy keyword weighting for exact syntax
+    )
+}
+```
+
+By decoupling RAG configuration from hardcoded application constants, support teams and technical account managers can tune retrieval for individual enterprise accounts without deploying code changes.
+
+#### 2. Adaptive Ingestion Chunking by Tenant Profile
+
+During asynchronous document ingestion, worker tasks inspect the tenant's assigned profile before tokenizing and chunking text:
+
+```python
+def chunk_tenant_document(raw_text: str, profile: TenantRagProfile) -> list[str]:
+    if profile.chunking_strategy == "code_syntax":
+        # Preserve AST boundaries and function definitions
+        return code_syntax_chunker(
+            raw_text, 
+            max_tokens=profile.chunk_size, 
+            overlap=profile.chunk_overlap
+        )
+    elif profile.chunking_strategy == "markdown_header":
+        # Keep legal sections and clauses intact under parent headers
+        return header_aware_chunker(
+            raw_text, 
+            max_tokens=profile.chunk_size, 
+            overlap=profile.chunk_overlap
+        )
+    else:
+        # Standard recursive text splitter
+        return recursive_character_chunker(
+            raw_text, 
+            chunk_size=profile.chunk_size, 
+            chunk_overlap=profile.chunk_overlap
+        )
+```
+
+Documents are ingested into the vector database formatted to maximize readability and contextual integrity for that specific tenant's typical query patterns.
+
+#### 3. Dynamic Hybrid Search via Tenant Alpha Weighting
+
+During retrieval, query engines combine sparse BM25 keyword search with dense vector similarity using Reciprocal Rank Fusion (RRF) or convex combination weighted by the tenant's `hybrid_alpha`:
+
+```python
+def execute_hybrid_tenant_search(query: str, profile: TenantRagProfile, top_k: int = 5):
+    alpha = profile.hybrid_alpha  # Tenant-specific weight
+    
+    # 1. Sparse BM25 Keyword Search
+    sparse_results = bm25_search(
+        query=query, 
+        tenant_id=profile.tenant_id, 
+        limit=top_k * 2
+    )
+    
+    # 2. Dense Vector Semantic Search
+    query_vector = embed_query(query)
+    dense_results = vector_search(
+        vector=query_vector, 
+        tenant_id=profile.tenant_id, 
+        limit=top_k * 2
+    )
+    
+    # 3. Dynamic Hybrid Score Blending
+    # Hybrid_Score = (alpha * dense_score) + ((1 - alpha) * sparse_score)
+    combined_scores = blend_hybrid_results(
+        dense_results, 
+        sparse_results, 
+        weight=alpha
+    )
+    
+    # 4. Optional Cross-Encoder Reranking
+    if profile.enable_reranking:
+        return rerank_with_cross_encoder(query, combined_scores[:top_k * 2])[:top_k]
+        
+    return combined_scores[:top_k]
+```
+
+For developer-focused tenants, setting `alpha = 0.25` prioritizes exact code identifier matches. For consulting or legal tenants, setting `alpha = 0.75` prioritizes high-level conceptual understanding.
+
+---
+
+### Key Takeaways for Technical Founders
+
+- **Don't Hardcode Ingestion Constants:** Treat chunk size, overlap, and search balance as tenant-level metadata variables stored in PostgreSQL.
+- **Expose Advanced Settings to Enterprise Admins:** Enterprise clients value the ability to toggle search weighting (e.g., "Favor Exact Match" vs. "Favor Concept Exploration") directly from their administrative console.
+- **Track Per-Tenant Recall Metrics:** Monitor search click-through rates (CTR) and user feedback thumbs-down rates segmented by tenant to identify accounts that need profile adjustments.
+

@@ -207,42 +207,6 @@ export function BlogList({ articles, categories }: BlogListProps) {
           </div>
         </div>
 
-        {/* Quick Category Chips */}
-        {sortedCategories.length ? (
-          <div
-            aria-label="Quick category filters"
-            className="flex flex-wrap items-center gap-1.5 pt-1"
-          >
-            <button
-              type="button"
-              onClick={() => handleCategoryChange("all")}
-              className={`rounded-md px-2.5 py-1 text-xs font-mono transition-colors cursor-pointer border ${
-                selectedCategory === "all"
-                  ? "bg-[var(--foreground)] text-[var(--background)] border-[var(--foreground)] font-semibold"
-                  : "bg-[var(--surface)] text-[var(--muted)] border-[var(--line)] hover:text-[var(--foreground)] hover:border-[var(--line-strong)]"
-              }`}
-            >
-              All ({articles.length})
-            </button>
-            {sortedCategories.map((category) => {
-              const isSelected = selectedCategory === category;
-              return (
-                <button
-                  type="button"
-                  key={category}
-                  onClick={() => handleCategoryChange(category)}
-                  className={`rounded-md px-2.5 py-1 text-xs font-mono transition-colors cursor-pointer border ${
-                    isSelected
-                      ? "bg-[var(--foreground)] text-[var(--background)] border-[var(--foreground)] font-semibold"
-                      : "bg-[var(--surface)] text-[var(--muted)] border-[var(--line)] hover:text-[var(--foreground)] hover:border-[var(--line-strong)]"
-                  }`}
-                >
-                  {category} ({categoryCounts[category] || 0})
-                </button>
-              );
-            })}
-          </div>
-        ) : null}
 
         {/* Live Filter Summary & Reset Button */}
         <div className="flex flex-wrap items-center justify-between gap-2 pt-1 text-xs text-[var(--muted)] font-mono border-t border-[var(--line)]/50">

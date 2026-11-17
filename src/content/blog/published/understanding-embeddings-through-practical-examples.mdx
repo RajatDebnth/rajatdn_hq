@@ -1,0 +1,160 @@
+---
+title: "Understanding Embeddings Through Practical Examples"
+description: "Learn how vector embeddings turn arbitrary text into mathematical coordinates, and how to implement semantic search, cosine similarity, and clustering with pure Python and NumPy."
+date: "2026-11-17"
+author: "Rajat Debnath"
+category: "Engineering"
+tags:
+  - "AI Engineering"
+  - "Vector Embeddings"
+  - "Semantic Search"
+  - "Python"
+  - "NumPy"
+readTime: "5 min read"
+---
+
+If you have spent any time reading AI tutorials over the past two years, you have encountered the term "vector embedding." Frameworks talk about embedding models as black-box transformers that convert strings into arrays of floating-point numbers.
+
+To build reliable search systems, recommendation engines, and retrieval pipelines, you cannot treat embeddings as magic. At its core, an embedding is simply a spatial coordinate representing the conceptual meaning of a piece of information.
+
+```
+Conceptual Distance in Vector Space:
+
+[ King ] ---------------------------- [ Queen ]
+   |                                     |
+   | (Gender Vector Shift)               | (Gender Vector Shift)
+   v                                     v
+[ Man ]  ---------------------------- [ Woman ]
+```
+
+When two sentences express similar ideas—even if they share zero identical words—their mathematical coordinates sit near each other in vector space.
+
+---
+
+### 1. What Embeddings Look Like Under the Hood
+
+When you feed the string `"refund policy for damaged goods"` into an embedding model like `text-embedding-3-small`, the API returns an array of floating-point values:
+
+```json
+[-0.0142, 0.0381, -0.0094, 0.0812, ..., -0.0231]
+```
+
+This specific model produces a vector of 1,536 dimensions. Each dimension captures an abstract latent feature learned during training across billions of web tokens. While human engineers cannot look at index 42 and label it "sentiment" or index 108 as "customer intent," the geometric relationship between vectors accurately reflects semantic meaning.
+
+---
+
+### 2. Measuring Semantic Proximity with Cosine Similarity
+
+How do you determine if two 1,536-dimensional coordinates are close together? The industry-standard metric is **cosine similarity**, which calculates the cosine of the angle between two vectors:
+
+- A cosine similarity of **1.0** indicates identical direction (exact semantic alignment).
+- A cosine similarity of **0.0** indicates orthogonality (completely unrelated concepts).
+- A cosine similarity of **-1.0** indicates opposite direction.
+
+Here is a pure Python implementation using NumPy without heavy framework dependencies:
+
+```python
+import numpy as np
+
+def cosine_similarity(a: np.ndarray, b: np.ndarray) -> float:
+    dot_product = np.dot(a, b)
+    norm_a = np.linalg.norm(a)
+    norm_b = np.linalg.norm(b)
+    if norm_a == 0.0 or norm_b == 0.0:
+        return 0.0
+    return float(dot_product / (norm_a * norm_b))
+```
+
+If you ensure your vectors are normalized to unit length (`L2 norm = 1.0`), the denominator becomes `1.0 * 1.0`, and cosine similarity simplifies into a single fast dot product (`np.dot(a, b)`).
+
+---
+
+### 3. Practical Example: Building an In-Memory Semantic Search
+
+Let us demonstrate where semantic embeddings outperform classical keyword search. Consider three customer support tickets:
+
+1. `"My package arrived broken and shattered."`
+2. `"Can I get my money back for a defective product?"`
+3. `"The weather in Seattle is quite rainy today."`
+
+Now imagine a customer searches with the query: `"How do I request a reimbursement?"`
+
+A traditional SQL query using `LIKE '%reimbursement%'` or an Elasticsearch keyword search returns zero hits because neither ticket 1 nor ticket 2 contains the word "reimbursement."
+
+Here is how an embedding-based search solves this problem:
+
+```python
+import numpy as np
+from openai import OpenAI
+
+client = OpenAI()
+
+def get_embedding(text: str) -> np.ndarray:
+    response = client.embeddings.create(
+        input=text,
+        model="text-embedding-3-small"
+    )
+    return np.array(response.data[0].embedding, dtype=np.float32)
+
+tickets = [
+    "My package arrived broken and shattered.",
+    "Can I get my money back for a defective product?",
+    "The weather in Seattle is quite rainy today."
+]
+
+# Step 1: Pre-compute vector embeddings for tickets
+ticket_vectors = [get_embedding(t) for t in tickets]
+
+# Step 2: Embed the incoming user query
+query = "How do I request a reimbursement?"
+query_vector = get_embedding(query)
+
+# Step 3: Rank tickets by cosine similarity
+results = []
+for idx, vec in enumerate(ticket_vectors):
+    score = cosine_similarity(query_vector, vec)
+    results.append((score, tickets[idx]))
+
+results.sort(key=lambda x: x[0], reverse=True)
+
+for score, text in results:
+    print(f"[{score:.3f}] {text}")
+```
+
+Execution output:
+
+```
+[0.784] Can I get my money back for a defective product?
+[0.691] My package arrived broken and shattered.
+[0.182] The weather in Seattle is quite rainy today.
+```
+
+The system correctly identifies the return policy question as the top match because "money back" and "reimbursement" live in neighboring regions of vector space.
+
+---
+
+### 4. Semantic Search vs. Lexical Search Trade-offs
+
+Developers transitioning into AI often assume embeddings replace traditional keyword search entirely. In production, this assumption causes painful bugs:
+
+- **Exact Identifier Lookups**: Searching for SKU `"SKU-99482-X"`, invoice numbers, or function names like `getUserById()` often fails with embeddings because tokenizers split arbitrary strings into mismatched subwords. Lexical engines (BM25, PostgreSQL Full Text Search) excel here.
+- **Negation Handling**: Sentences like `"hotels with swimming pool"` and `"hotels without swimming pool"` frequently score very high similarity (above 0.88) because both discuss hotel amenities.
+- **Computational Cost**: Generating embeddings requires an API call or local inference, while SQL keyword indices evaluate in microseconds.
+
+The gold standard for production search is **Hybrid Search**: running BM25 for keyword accuracy and vector embeddings for semantic intent, then merging results with Reciprocal Rank Fusion (RRF).
+
+---
+
+### 5. Architectural Checklist for Embeddings
+
+When integrating vector embeddings into your applications, adhere to these operational principles:
+
+1. **Pick One Model and Stick With It**: You cannot compute cosine similarity between vectors from different models (such as `text-embedding-3-small` and `sentence-transformers/all-MiniLM-L6-v2`) or even between different dimension sizes. If you change models, you must re-embed your entire corpus.
+2. **Batch API Ingestion**: Never send text items one by one in a loop over HTTP. The OpenAI Embeddings API accepts lists of up to 2,048 strings per request, reducing network round-trips from minutes to seconds.
+3. **Cache Embeddings Reliably**: Text does not change its semantic vector over time. Compute hashes of raw text (`hashlib.sha256(text.encode()).hexdigest()`) and store embeddings in Redis or PostgreSQL to avoid paying twice for identical queries.
+
+---
+
+### Summary
+
+Embeddings translate human language into geometric space. Once you understand that semantic search is simply calculating angles between high-dimensional arrays, vector databases and RAG pipelines become intuitive software engineering problems rather than mysteries.

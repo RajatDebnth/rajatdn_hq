@@ -1,0 +1,113 @@
+---
+title: "Five AI Projects for Your Portfolio That Will Actually Get You Hired"
+description: "Tired of generic chat-with-PDF tutorials? Here are five production-grade AI portfolio projects that demonstrate real engineering skills to technical hiring managers."
+date: "2026-11-17"
+author: "Rajat Debnath"
+category: "Career"
+tags:
+  - "Career"
+  - "AI Engineering"
+  - "Portfolio Projects"
+  - "Software Engineering"
+  - "Hiring"
+readTime: "5 min read"
+---
+
+If you browse the GitHub profiles of aspiring AI engineers, you will see a repeating pattern: a generic Streamlit app wrapped around LangChain's basic `ConversationalRetrievalChain`, with hardcoded API keys and zero unit tests.
+
+To a senior technical hiring manager or a high-paying freelance client, a 30-line tutorial clone signals beginner tutorial following, not production competence. Companies hiring AI engineers are looking for software professionals who know how to tame non-deterministic models, prevent costly token overruns, handle network failures, and enforce security guardrails.
+
+Here are five high-signal portfolio projects that demonstrate deep practical engineering rather than surface-level API prompting.
+
+```
+What Makes a High-Signal AI Portfolio Project:
+
+Tutorial Toys:
+[ Streamlit UI ] ---> [ LangChain Black Box ] ---> [ Raw LLM Output ]
+
+Production-Grade Systems:
+[ Next.js / API Client ]
+         |
+         v
+[ FastAPI Gateway (Rate Limits + Semantic Cache) ]
+         |
+         v
+[ Hybrid Search / SQL Agent (With Guardrails & Pydantic) ]
+         |
+         v
+[ Background Job Worker (Redis + Dead-Letter Queue) ]
+         |
+         v
+[ Observability & Eval Pipeline (DeepEval / Tracing) ]
+```
+
+---
+
+### Project 1: Multi-Tenant RAG Engine with Row-Level Access Control
+
+Most RAG tutorials assume a single user searching a public document corpus. In enterprise environments, that approach causes critical security leaks.
+
+- **The Problem**: A user from Department A must never retrieve document chunks belonging to Department B or a restricted executive folder.
+- **What You Build**: A multi-tenant retrieval system using PostgreSQL with `pgvector`. Every document chunk stores tenant IDs and user role permissions in metadata columns.
+- **Key Technical Highlights**: Implement hybrid search (combining PostgreSQL full-text search with vector cosine distance), enforce SQL row-level security (RLS), and return verified source citations with exact page numbers.
+- **What It Proves**: You understand data governance, enterprise security, and hybrid retrieval.
+
+---
+
+### Project 2: Self-Correcting SQL Analytics Agent
+
+Instead of building a simple Text-to-SQL script, build an autonomous agent that investigates data errors and fixes its own mistakes.
+
+- **The Problem**: LLM-generated SQL queries frequently fail due to syntax typos, missing column names, or incorrect table joins.
+- **What You Build**: An agent loop that queries a read-only PostgreSQL replica. If the database returns an error code, the agent catches the traceback, sends the error back to the model, and requests a corrected query.
+- **Key Technical Highlights**: Enforce a maximum iteration cap (3 tries), require an explicit `LIMIT 50` clause on all queries, validate input/output with Pydantic, and add a Human-in-the-Loop approval gate for any data export.
+- **What It Proves**: You know how to build resilient agent loops with defensive database boundaries.
+
+---
+
+### Project 3: High-Performance LLM Gateway with Semantic Caching
+
+API calls to frontier models are slow and expensive. Building an intelligent proxy layer demonstrates true systems architecture skills.
+
+- **The Problem**: 30% of user queries in customer support or internal FAQs are semantically identical (e.g., "How do I reset my password?" vs "I forgot my password").
+- **What You Build**: A reverse proxy service sitting between the frontend and model providers. It embeds incoming queries and checks a Redis vector cache. If a cached answer exists with cosine similarity greater than 0.96, it returns the cached response in 15ms.
+- **Key Technical Highlights**: Implement token bucket rate limiting per user, automated fallback from primary to secondary model providers on 5xx errors, and cost tracking metrics.
+- **What It Proves**: You understand cloud economics, API latency optimization, and infrastructure resiliency.
+
+---
+
+### Project 4: Automated Evals Pipeline for Prompt and Model Regression
+
+Every time you change a system prompt or switch model versions, how do you verify you didn't degrade answer quality across 50 edge cases?
+
+- **The Problem**: Manual eyeballing of prompts does not scale. Companies need automated CI/CD for AI outputs.
+- **What You Build**: A testing harness that runs during GitHub Actions. It evaluates 50 synthetic test cases against criteria like factual faithfulness, answer relevancy, and toxic language detection using LLM-as-a-judge patterns.
+- **Key Technical Highlights**: Integration with tools like `DeepEval` or custom pytest fixtures; outputting regression reports showing score diffs between Git branches.
+- **What It Proves**: You treat AI engineering with the same scientific rigor and testing discipline as mission-critical backend software.
+
+---
+
+### Project 5: Asynchronous Document Processing Pipeline with Dead-Letter Queues
+
+Processing 500-page enterprise manuals or financial PDFs crushes synchronous HTTP handlers.
+
+- **The Problem**: PDF extraction, OCR, text chunking, and embedding generation take minutes and can crash midway.
+- **What You Build**: An event-driven ingestion pipeline. Users upload documents via presigned S3 URLs. A message is placed on a Redis queue, and a worker pool processes the document asynchronously with progress updates pushed over WebSockets or SSE.
+- **Key Technical Highlights**: Chunking with sentence boundary preservation, automatic retries with exponential backoff, dead-letter queues for malformed files, and structured error notifications.
+- **What It Proves**: You have mastery over distributed background tasks, message brokers, and fault-tolerant pipelines.
+
+---
+
+### How to Present These Projects on Your Resume
+
+When listing these projects on your resume or portfolio site:
+
+1. **Include Architecture Diagrams**: Draw clean ASCII or Mermaid sequence diagrams illustrating data flow and error paths.
+2. **Quantify Results**: Highlight real metrics: *"Reduced query latency by 85% using Redis semantic caching"* or *"Enforced 100% tenant data isolation across 5,000 vector embeddings."*
+3. **Write Professional READMEs**: Provide simple Docker Compose setup commands (`docker compose up --build`), environment variable documentation, and sample test fixtures.
+
+---
+
+### Summary
+
+Skip the 20-line LangChain tutorials. Building projects that tackle multi-tenancy, background queues, self-correcting agent loops, and automated evaluations will immediately distinguish you from the competition and prove you are ready for production AI engineering.

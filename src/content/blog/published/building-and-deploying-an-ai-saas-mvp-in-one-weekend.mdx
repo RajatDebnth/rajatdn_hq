@@ -1,0 +1,146 @@
+---
+title: "Building and Deploying an AI SaaS MVP: The Modern Weekend Stack"
+description: "A blueprint for shipping a functional, monetized AI SaaS MVP in 48 hours using Next.js App Router, the Vercel AI SDK, Supabase pgvector, and Stripe credits."
+date: "2026-11-17"
+author: "Rajat Debnath"
+category: "Product Engineering"
+tags:
+  - "SaaS"
+  - "Next.js"
+  - "AI MVP"
+  - "Stripe"
+  - "Full-Stack"
+readTime: "5 min read"
+---
+
+Most developers who set out to build an AI SaaS spend six months stuck in tutorial paralysis. They over-engineer custom multi-agent swarms, design elaborate microservice architectures, and build custom authentication servers before talking to a single paying customer.
+
+In generative AI, speed of market feedback is everything. Thanks to modern full-stack developer tools, you can build, secure, monetize, and deploy a production-grade AI MVP in a single weekend.
+
+Here is the pragmatic 48-hour blueprint using the modern TypeScript ecosystem: Next.js App Router, the Vercel AI SDK, Supabase (PostgreSQL with `pgvector`), and Stripe.
+
+```
+The 48-Hour AI SaaS Architecture:
+
+[ User Browser ]
+       |
+       v (Next.js App Router & Tailwind CSS)
+[ Vercel Serverless Edge Runtime ]
+       |
+       +---> [ Vercel AI SDK (streamText) ] ---> [ OpenAI / Anthropic API ]
+       |                                                    |
+       +---> [ Supabase PostgreSQL + Auth ]                 | (Tokens stream back)
+       |     (Users, Sessions, Credits, pgvector)           |
+       |                                                    v
+       +---> [ Stripe Webhooks ] <--- [ Payment Checkouts ]
+```
+
+---
+
+### The Recommended Weekend Tech Stack
+
+Do not introduce new experimental tools for your MVP. Stick to mature, cohesive technologies that minimize glue code:
+
+- **Frontend & API**: Next.js (App Router, Server Components, Route Handlers).
+- **Streaming UI**: Vercel AI SDK (`@ai-sdk/react` with `useChat` or `streamText`).
+- **Database & Auth**: Supabase (Provides PostgreSQL, built-in Auth, Row Level Security, and `pgvector` with zero DevOps).
+- **Billing & Monetization**: Stripe Checkout with credit balance metering.
+- **Deployment**: Vercel for the web application and Supabase Cloud for data.
+
+---
+
+### Saturday: Core Product and Streaming Engine
+
+Your goal for Saturday is to build the core AI value proposition and get streaming text working end-to-end.
+
+#### 1. Implement Server-Side Streaming
+Using Next.js Route Handlers and the Vercel AI SDK, you can build a streaming chat completion endpoint in fewer than 30 lines of clean TypeScript:
+
+```typescript
+// app/api/chat/route.ts
+import { openai } from '@ai-sdk/openai';
+import { streamText } from 'ai';
+
+export const maxDuration = 30; // Extend serverless execution limit
+
+export async function POST(req: Request) {
+  const { messages } = await req.json();
+
+  const result = streamText({
+    model: openai('gpt-4o-mini'),
+    system: 'You are an expert technical resume reviewer. Provide constructive, direct feedback.',
+    messages,
+  });
+
+  return result.toDataStreamResponse();
+}
+```
+
+#### 2. Connect the Reactive Frontend
+On the client, the `useChat` hook handles user message state, optimistic UI updates, streaming chunks, and abort controllers automatically:
+
+```tsx
+// app/page.tsx
+'use client';
+import { useChat } from '@ai-sdk/react';
+
+export default function ResumeReviewer() {
+  const { messages, input, handleInputChange, handleSubmit, isLoading } = useChat();
+
+  return (
+    <main className="max-w-2xl mx-auto py-12 px-4">
+      <h1 className="text-2xl font-bold mb-6">AI Technical Resume Reviewer</h1>
+      <div className="space-y-4 mb-6">
+        {messages.map(m => (
+          <div key={m.id} className={m.role === 'user' ? 'text-blue-600' : 'text-slate-800'}>
+            <strong>{m.role === 'user' ? 'You: ' : 'AI: '}</strong>
+            <span className="whitespace-pre-wrap">{m.content}</span>
+          </div>
+        ))}
+      </div>
+      <form onSubmit={handleSubmit} className="flex gap-2">
+        <input
+          value={input}
+          onChange={handleInputChange}
+          placeholder="Paste your bullet points or job description..."
+          className="flex-1 border p-2 rounded"
+        />
+        <button type="submit" disabled={isLoading} className="bg-black text-white px-4 py-2 rounded">
+          Review
+        </button>
+      </form>
+    </main>
+  );
+}
+```
+
+By Saturday night, you have a responsive, streaming AI application running locally.
+
+---
+
+### Sunday Morning: Authentication and Credit-Based Billing
+
+The biggest financial mistake in AI SaaS is offering unlimited flat-rate subscriptions ($10/month for unlimited queries). A single power user running automated scripts can consume $300 in API tokens and bankrupt your project.
+
+Instead, build a **prepaid credit system**:
+
+1. **User Schema**: In Supabase, create a `profiles` table linked to `auth.users` with a `credits` integer column (defaulting to 10 free credits upon signup).
+2. **Pre-Check Deductions**: Before triggering `streamText` in your route handler, verify the user has `credits > 0`. Deduct 1 credit per interaction.
+3. **Stripe Checkout**: Create a Stripe Checkout Session selling credit packs (e.g., "$15 for 250 AI reviews").
+4. **Stripe Webhook**: When `checkout.session.completed` fires, increment the user's `credits` balance in Supabase.
+
+---
+
+### Sunday Afternoon: Hardening and Production Deployment
+
+Before sharing your link on social media or developer forums, address three critical production requirements:
+
+- **1. Rate Limiting**: Install `@upstash/ratelimit` with Redis to prevent automated scrapers from exhausting your OpenAI API keys. Cap unauthenticated requests to 5 per hour.
+- **2. Output Boundaries**: Set `max_tokens: 1000` to prevent runaway generation loops from draining user credits.
+- **3. Environment Variables**: Add your `OPENAI_API_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, and `STRIPE_WEBHOOK_SECRET` in the Vercel Dashboard, then run `vercel deploy --prod`.
+
+---
+
+### Summary
+
+Shipping an AI SaaS MVP in 48 hours is entirely achievable when you resist the urge to invent custom infrastructure. By combining Next.js streaming with Supabase and credit-based Stripe billing, you can launch a validated, monetized product before the weekend is over and begin learning from real users.

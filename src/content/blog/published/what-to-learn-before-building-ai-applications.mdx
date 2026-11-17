@@ -1,0 +1,115 @@
+---
+title: "What to Learn Before Building AI Applications: The Pragmatic Developer Checklist"
+description: "Skip the heavy math textbooks. Here is the pragmatic checklist of programming, API, and data skills you actually need before building AI applications."
+date: "2026-11-17"
+author: "Rajat Debnath"
+category: "Foundations & Fundamentals"
+tags: ["Prerequisites", "Python", "APIs", "Async IO", "Beginner AI"]
+readTime: "5 min read"
+---
+
+When software developers decide to learn artificial intelligence, they frequently search for course recommendations online. Invariably, well-meaning academics tell them to start by brushing up on multivariable calculus, matrix multiplication, probability theory, and building linear regression from scratch in NumPy.
+
+Three weeks later, frustrated developers are staring at partial derivative formulas, completely detached from the software they wanted to build.
+
+In modern AI application development, foundation models are consumed over network protocols using structured APIs. You do not need to calculate loss gradients manually any more than a web developer needs to understand electrical semiconductor physics to build a Next.js application.
+
+To build production-ready AI software, your time is far better spent mastering five pragmatic software engineering fundamentals.
+
+---
+
+### The Pragmatic Pre-AI Skill Stack
+
+```
+[The 5 Core Engineering Prerequisites]
+1. Asynchronous Python & Network Programming (async/await, httpx)
+2. Strict Data Modeling & Schema Validation (Pydantic V2)
+3. RESTful API Architecture & Real-Time Protocols (SSE & WebSockets)
+4. Relational & Unstructured Data Hygiene (Postgres, JSON, CSV)
+5. Environment Secrets & Security Hygiene (KMS, Vault, .env safety)
+```
+
+---
+
+### 1. Asynchronous Python & Network Programming
+
+Most machine learning tutorials execute synchronous code in single-threaded Jupyter notebook cells. In production, an LLM call takes anywhere from 500 milliseconds to 10 seconds.
+
+If your web service uses blocking synchronous calls, a single user request freezes the entire server thread, preventing all other users from loading pages:
+
+- **Master `asyncio` and `httpx`:** Learn how coroutines, event loops, and asynchronous HTTP clients prevent server lockups.
+- **Handling Timeouts and Retries:** Master exponential backoff algorithms with randomized jitter to gracefully handle upstream rate limits (HTTP 429 errors).
+
+```python
+import asyncio
+import httpx
+
+async def fetch_llm_completion(prompt: str, client: httpx.AsyncClient) -> str:
+    # Non-blocking network request with explicit timeout envelopes
+    response = await client.post(
+        "https://api.openai.com/v1/chat/completions",
+        json={"model": "gpt-4o-mini", "messages": [{"role": "user", "content": prompt}]},
+        headers={"Authorization": f"Bearer {API_KEY}"},
+        timeout=15.0
+    )
+    return response.json()["choices"][0]["message"]["content"]
+```
+
+---
+
+### 2. Strict Data Validation with Pydantic V2
+
+LLMs are non-deterministic: you ask for a number, and the model might return a string or an explanation. In production software, databases and frontend components require guaranteed types.
+
+**Pydantic** is the foundational backbone of the modern Python AI ecosystem (powering FastAPI, LangChain, and OpenAI SDKs):
+- **Model Definitions:** Learn how to declare data models with typed attributes, default values, and field constraints.
+- **Schema Validation:** Practice writing custom `@field_validator` and `@model_validator` methods that catch mathematical discrepancies and malformed dates before records enter your database.
+
+```python
+from pydantic import BaseModel, Field
+
+class ExtractedInvoice(BaseModel):
+    vendor_name: str
+    invoice_number: str = Field(min_length=3)
+    total_amount_cents: int = Field(gt=0, description="Amount in cents to avoid float errors")
+    is_tax_deductible: bool
+```
+
+---
+
+### 3. Real-Time Streaming Protocols (SSE vs. WebSockets)
+
+In traditional CRUD web apps, servers respond with immediate JSON payloads. In generative AI, users abandon interfaces if they are forced to stare at a blank screen for 6 seconds.
+
+- **Server-Sent Events (SSE):** Learn how unidirectional HTTP streaming works. SSE is simpler than WebSockets, traverses firewalls effortlessly, and is the native protocol used by OpenAI and Anthropic to stream tokens.
+- **WebSockets:** Understand when bidirectional protocols are required (such as real-time voice agents or collaborative canvases).
+
+---
+
+### 4. Data Hygiene: SQL, JSON, and Document Formats
+
+Before you can build a Retrieval-Augmented Generation (RAG) system, you must be comfortable reading, transforming, and cleaning messy unstructured data:
+- **Relational SQL Fundamentals:** Joins, foreign keys, and indexes. (PostgreSQL is becoming the universal vector store thanks to the `pgvector` extension).
+- **Document Formats:** Learn how text flows inside Markdown, HTML, CSV, and PDF structures. Understanding header hierarchies and table representations directly dictates RAG search accuracy.
+
+---
+
+### 5. Secrets Management and Security Hygiene
+
+AI API keys are high-value targets. A single leaked key committed to a public GitHub repository can result in thousands of dollars in unauthorized bot compute within hours:
+- **Environment Isolation:** Never hardcode secrets. Use `.env` files locally and ensure `.gitignore` blocks them from version control.
+- **Principle of Least Privilege:** Learn how to configure cloud secret stores (AWS Secrets Manager or HashiCorp Vault) and assign scoped IAM credentials.
+
+---
+
+### What You Can Safely Postpone
+
+- **Custom Neural Network Training:** You do not need to train models from scratch using PyTorch or TensorFlow.
+- **Linear Algebra Proofs:** You only need an intuitive understanding of vector distance (how cosine similarity measures closeness between two coordinate lists).
+- **Heavy Orchestration Frameworks:** Master the raw provider SDKs first before reaching for multi-layered abstractions.
+
+---
+
+### Summary Checklist
+
+If you can write an asynchronous Python script, validate incoming payloads using Pydantic, query a PostgreSQL database, and stream text over an HTTP endpoint, you possess all the prerequisites needed to build world-class AI applications.

@@ -1,0 +1,179 @@
+---
+title: "Building Your First RAG Application: A Minimalist Python Implementation"
+description: "Learn the core architecture of Retrieval-Augmented Generation (RAG) by building a working knowledge retrieval pipeline from scratch in Python without heavyweight orchestration frameworks."
+date: "2026-11-17"
+author: "Rajat Debnath"
+category: "Engineering"
+tags:
+  - "AI Engineering"
+  - "RAG"
+  - "Python"
+  - "LLM APIs"
+  - "Tutorial"
+readTime: "5 min read"
+---
+
+Large Language Models are brilliant generalists, but they have two fundamental limitations in real-world software development: knowledge cutoffs and hallucinations. If you ask a frontier model about your company's internal refund policy, private Slack history, or an API release from last Tuesday, it will either admit ignorance or fabricate a convincing answer.
+
+**Retrieval-Augmented Generation (RAG)** solves this by treating the LLM as an open-book reasoning engine. Instead of relying on weights stored during pre-training, the model receives relevant excerpts from your proprietary knowledge base directly inside the prompt context.
+
+```
+Minimalist RAG Architecture:
+
+[ Raw Knowledge Files ]
+          |
+          v
+  [ Text Chunking ]
+          |
+          v
+ [ Vector Embedding ] ---> [ Vector Index / Store ]
+                                  |
+[ User Query ] ---> [ Embed Query ] ---> [ Similarity Search (Top-K) ]
+                                                    |
+                                                    v
+[ Augment Prompt: Context + Question ] ---> [ LLM Inference ] ---> [ Answer ]
+```
+
+While frameworks like LangChain and LlamaIndex offer abstractions for this workflow, learning RAG through abstractions obscures what actually happens over the wire. Let us build a clean, production-style RAG script using raw Python and the official OpenAI SDK.
+
+---
+
+### Step 1: Ingestion and Chunking
+
+LLMs have finite context windows, and retrieval accuracy degrades if you pass an entire 80-page PDF as a single block. We must break documents into bite-sized "chunks."
+
+For simple text documents, a paragraph-based chunker with character overlap provides a solid baseline:
+
+```python
+def chunk_text(text: str, chunk_size: int = 500, overlap: int = 100) -> list[str]:
+    chunks = []
+    start = 0
+    while start < len(text):
+        end = start + chunk_size
+        chunk = text[start:end].strip()
+        if chunk:
+            chunks.append(chunk)
+        start += chunk_size - overlap
+    return chunks
+```
+
+In production, you will refine this to split on markdown headers, sentence boundaries, or code blocks, but sliding-window chunking demonstrates the underlying mechanic: preserving semantic context across slice boundaries.
+
+---
+
+### Step 2: Indexing Chunks in Vector Space
+
+Next, we generate embeddings for our chunks and store them alongside their raw text. We can represent our vector index with a lightweight Python dictionary:
+
+```python
+import numpy as np
+from openai import OpenAI
+
+client = OpenAI()
+
+def get_embedding(text: str) -> list[float]:
+    response = client.embeddings.create(
+        input=text,
+        model="text-embedding-3-small"
+    )
+    return response.data[0].embedding
+
+raw_document = """
+AcmeCorp Global Travel Policy (Updated 2026):
+Employees are eligible for travel meal reimbursement up to $75 per day.
+All flight bookings exceeding 4 hours must be booked in Premium Economy.
+Lodging receipts must be submitted within 14 business days of trip conclusion.
+Late expense filings require VP approval and may result in reimbursement delays.
+Car rentals are capped at mid-size sedans unless four or more passengers travel together.
+"""
+
+chunks = chunk_text(raw_document, chunk_size=200, overlap=50)
+
+# Build the vector store
+vector_store = []
+for index, chunk in enumerate(chunks):
+    embedding = get_embedding(chunk)
+    vector_store.append({
+        "id": index,
+        "text": chunk,
+        "vector": np.array(embedding, dtype=np.float32)
+    })
+```
+
+---
+
+### Step 3: Semantic Retrieval of Top-K Chunks
+
+When a user asks a question, we convert their query into an embedding vector, compute the cosine similarity against all stored document chunks, and extract the top $K$ most relevant passages.
+
+```python
+def cosine_similarity(a: np.ndarray, b: np.ndarray) -> float:
+    return float(np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b)))
+
+def retrieve(query: str, store: list[dict], top_k: int = 2) -> list[str]:
+    query_vector = np.array(get_embedding(query), dtype=np.float32)
+    
+    scored_chunks = []
+    for item in store:
+        score = cosine_similarity(query_vector, item["vector"])
+        scored_chunks.append((score, item["text"]))
+        
+    scored_chunks.sort(key=lambda x: x[0], reverse=True)
+    return [chunk for _, chunk in scored_chunks[:top_k]]
+```
+
+---
+
+### Step 4: Prompt Augmentation and Generation
+
+Now comes the "AG" in RAG: we augment our system prompt with the retrieved text chunks and instruct the model to answer the user query relying strictly on that context.
+
+```python
+def answer_query(query: str, store: list[dict]) -> str:
+    retrieved_contexts = retrieve(query, store, top_k=2)
+    formatted_context = "\n---\n".join(retrieved_contexts)
+    
+    prompt = f"""You are a precise internal company assistant.
+Answer the question using ONLY the provided context excerpts below.
+If the answer cannot be determined from the context, respond with 'Information not available in policy.'
+
+Retrieved Context:
+{formatted_context}
+
+Question: {query}
+Answer:"""
+
+    response = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[
+            {"role": "system", "content": "You are a factual enterprise assistant."},
+            {"role": "user", "content": prompt}
+        ],
+        temperature=0.0
+    )
+    
+    return response.choices[0].message.content
+
+# Run the test
+user_question = "What is the daily meal budget and when must I submit my receipts?"
+print(answer_query(user_question, vector_store))
+```
+
+Output:
+```
+According to the AcmeCorp Global Travel Policy, the daily meal reimbursement is up to $75 per day, and lodging receipts must be submitted within 14 business days of trip conclusion.
+```
+
+---
+
+### Three Common Beginner Mistakes to Avoid
+
+1. **Chunking Too Large or Too Small**: If your chunks are 2,000 words, similarity scores get diluted by unrelated sentences. If chunks are 10 words, they lack sufficient context for the model to synthesize answers. For most text corpora, 300 to 600 tokens with a 15% overlap is the sweet spot.
+2. **Missing Metadata Filtering**: Relying solely on vector search means an query about "quarterly financial goals" might return a document from 2021 instead of 2026. Always attach metadata (date, author, department, tenant ID) to chunks so you can pre-filter queries.
+3. **Using High Temperature in Generation**: When performing factual extraction over retrieved context, set `temperature=0.0`. Higher temperatures introduce creative phrasing and increase the risk of extrapolating beyond the provided text.
+
+---
+
+### Summary
+
+RAG is not an incomprehensible AI monolith; it is an information retrieval pattern consisting of text splitting, vector indexing, nearest-neighbor matching, and structured prompt assembly. Once you master this minimal flow, you can scale it into persistent databases like PostgreSQL with `pgvector` or managed systems like Qdrant and Pinecone.

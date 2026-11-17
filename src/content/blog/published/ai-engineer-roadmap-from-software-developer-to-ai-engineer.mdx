@@ -1,0 +1,113 @@
+---
+title: "AI Engineer Roadmap: From Software Developer to AI Engineer"
+description: "Transition from web or backend engineering to AI engineering. Follow this practical, code-first 90-day roadmap to master LLMs, RAG, and production agents."
+date: "2026-11-17"
+author: "Rajat Debnath"
+category: "Career & Roadmaps"
+tags: ["AI Roadmap", "Career Transition", "Software Engineering", "LLMOps", "Full Stack AI"]
+readTime: "5 min read"
+---
+
+If you are a web developer, backend engineer, or computer science student looking at the generative AI explosion, you might assume you need a Ph.D. in machine learning, a deep understanding of backpropagation, or thousands of dollars in GPU hardware to enter the field.
+
+This assumption is wrong.
+
+The rise of foundation models has created a massive paradigm shift in the technology industry: the emergence of the **AI Engineer**. Unlike classical machine learning researchers who design model architectures and train billion-parameter weights from scratch, AI engineers take pre-trained foundation models (OpenAI, Anthropic, open-source Llama 3) and harness them to build reliable, scalable software applications.
+
+If you already know how to write clean code, consume REST APIs, design database schemas, and debug distributed systems, you already possess 70% of the skills required to become a world-class AI engineer. 
+
+Here is the practical, code-first 90-day roadmap to bridge the remaining 30%.
+
+---
+
+### The 90-Day Transition Roadmap
+
+```
+[Month 1: Foundation Primitives]
+- Modern Python & Async IO (asyncio, httpx)
+- Direct API Invocations (OpenAI / Anthropic SDKs)
+- Deterministic Output Control (Pydantic & JSON Schema)
+
+[Month 2: Knowledge Augmentation (RAG)]
+- Text Embeddings & Vector Search (Cosine distance, HNSW)
+- Document Parsing & Chunking Strategies
+- Hybrid Search (Dense Vectors + BM25 Keyword Search)
+
+[Month 3: Autonomous Agents & Production Deployment]
+- Tool / Function Calling Loops (ReAct framework)
+- Asynchronous Queues & Background Workers (BullMQ / Celery)
+- Evaluation Harnesses & LLM APM (OpenTelemetry, Langfuse)
+```
+
+---
+
+### Month 1: Foundation Primitives & API Mastery
+
+Your journey begins by mastering the direct primitives of foundation models without heavy frameworks.
+
+#### Core Milestones to Complete:
+- **Asynchronous Python Mastery:** Traditional data science uses synchronous scripts in Jupyter notebooks. Production AI engineering requires modern asynchronous Python: `asyncio`, `httpx`, and typing with `pydantic`.
+- **System Prompts & Role Framing:** Learn how system, user, and assistant roles shape model behavior. Practice writing negative constraints, few-shot demonstration pairs, and formatting directives.
+- **Strict Structured Outputs:** Stop writing prompts that say `"respond in JSON format"`. Master grammar-constrained decoding using Pydantic schemas (`response_format: {"type": "json_object"}` or OpenAI parse mode) to guarantee 100% schema compliance.
+
+```python
+# Day 15 Milestone: Strictly Typed Structured Extraction
+from pydantic import BaseModel, Field
+from openai import OpenAI
+
+class CustomerIntent(BaseModel):
+    category: str = Field(description="Support category, e.g., billing, technical")
+    urgency_score: int = Field(ge=1, le=5, description="Urgency from 1 to 5")
+    requires_human_escalation: bool
+
+client = OpenAI()
+
+def classify_ticket(user_message: str) -> CustomerIntent:
+    completion = client.beta.chat.completions.parse(
+        model="gpt-4o-mini",
+        messages=[
+            {"role": "system", "content": "You are a customer support routing engine."},
+            {"role": "user", "content": user_message}
+        ],
+        response_format=CustomerIntent
+    )
+    return completion.choices[0].message.parsed
+```
+
+---
+
+### Month 2: Context Augmentation & Production RAG
+
+Large language models have strict knowledge cutoffs and zero visibility into private company databases. Month 2 is dedicated to Retrieval-Augmented Generation (RAG).
+
+#### Core Milestones to Complete:
+- **Vector Embeddings in Practice:** Understand that an embedding is simply an array of floating-point coordinates representing semantic meaning. Learn how to compute cosine similarity using `numpy`.
+- **Intelligent Document Chunking:** Avoid naive fixed-character chunking that splits sentences down the middle. Implement recursive character splitting and markdown header-aware parsing.
+- **Vector Databases:** Gain hands-on experience with at least one managed vector database (Pinecone or Qdrant) and one relational vector extension (PostgreSQL with `pgvector`).
+- **Hybrid Search & Reranking:** Combine sparse keyword search (BM25) with dense vector similarity, and use cross-encoder rerankers (like Cohere Rerank or BGE) to filter out irrelevant chunks.
+
+---
+
+### Month 3: Autonomous Agents, Evals, and Production Operations
+
+The final month elevates you from someone who can build a weekend chatbot demo to an engineer who can deploy mission-critical AI systems to enterprise clients.
+
+#### Core Milestones to Complete:
+- **Function Calling & ReAct Loops:** Learn how models inspect JSON schemas, emit tool calls, and digest returned data to complete multi-step tasks.
+- **Stateful Agent Workflows:** Build structured, multi-turn state machines using LangGraph or native Python dispatchers rather than unbounded, brittle prompt chains.
+- **Automated Evaluation Pipelines:** Stop eyeballing responses manually. Learn how to write golden evaluation benchmarks and measure retrieval recall, answer faithfulness, and hallucination rates using automated evaluation frameworks.
+- **Production Observability:** Instrument distributed tracing using OpenTelemetry or Langfuse to monitor Time-to-First-Token (TTFT), token consumption velocity, and error rates.
+
+---
+
+### What to Avoid During Your Transition
+
+- **Do Not Start with Linear Algebra Math:** You do not need to derive gradient descent formulas on paper to build high-value RAG systems or agent workflows. Focus on software architecture first; study underlying theory as needed.
+- **Do Not Depend Blindly on Heavy Frameworks:** Avoid importing massive orchestration frameworks before you understand how the underlying HTTP API calls work. Build your first agents and RAG pipelines using raw Python SDKs.
+- **Do Not Build Generic Chatbots for Your Portfolio:** Building another generic OpenAI chat clone will not impress recruiters or freelance clients. Build domain-specific workflow tools that solve real business bottlenecks.
+
+---
+
+### Next Action Item
+
+Pick one problem you face in your daily workflow today—such as summarizing git commit histories, indexing your local markdown notes, or triaging inbox receipts—and build a typed command-line tool using an LLM API. The fastest way to become an AI engineer is to ship real software.

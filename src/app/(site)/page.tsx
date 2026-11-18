@@ -4,7 +4,7 @@ import Link from "next/link";
 import { ArticleCard } from "@/components/cards/article-card";
 import { JsonLd } from "@/components/seo/json-ld";
 import { Container } from "@/components/ui/container";
-import { BriefcaseIcon, GitHubIcon, LinkedInIcon } from "@/components/ui/icons";
+import { BriefcaseIcon, FuelerIcon, GitHubIcon, LinkedInIcon } from "@/components/ui/icons";
 import { siteConfig } from "@/config/site";
 import { getPublishedArticles } from "@/lib/content/blog";
 import { createPageMetadata } from "@/lib/metadata/create-page-metadata";
@@ -62,6 +62,17 @@ export default function Home() {
           >
             <GitHubIcon className="size-4" />
             <span className="sr-only">GitHub (opens in a new tab)</span>
+          </a>
+          <a
+            aria-label="Fueler profile (opens in a new tab)"
+            className="inline-flex size-9 items-center justify-center rounded-full border border-[var(--line)] bg-[var(--surface)] text-[var(--muted)] transition-all hover:border-[var(--line-strong)] hover:bg-[var(--surface-subtle)] hover:text-[var(--foreground)]"
+            href={siteConfig.contact.fuelerUrl}
+            rel="noopener noreferrer"
+            target="_blank"
+            title="Fueler"
+          >
+            <FuelerIcon className="size-4" />
+            <span className="sr-only">Fueler (opens in a new tab)</span>
           </a>
           <Link
             aria-label="Experiences page"

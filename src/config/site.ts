@@ -30,6 +30,7 @@ export const siteConfig = {
     phoneFormatted: "+91 6909802009",
     linkedInUrl: process.env.CONTACT_LINKEDIN_URL || "https://www.linkedin.com/in/rajat-debnath/",
     gitHubUrl: process.env.CONTACT_GITHUB_URL || "https://github.com/RajatDebnth",
+    fuelerUrl: process.env.CONTACT_FUELER_URL || "https://fueler.io/rajatdebnath",
   },
   topics: [
     "AI Engineer",

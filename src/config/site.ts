@@ -3,7 +3,7 @@ export const siteConfig = {
   givenName: "Rajat",
   familyName: "Debnath",
   professionalTitle: "AI Engineer",
-  specialization: "Production AI systems for advanced manufacturing",
+  specialization: "AI-powered products, internal knowledge engines, and intelligent workflow automations for modern teams.",
   defaultTitle: "Rajat Debnath — AI Engineer",
   description:
     "Rajat Debnath is an AI Engineer building AI products, software, websites and automations that turn operational data into clear action.",
